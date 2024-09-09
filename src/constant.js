@@ -7,5 +7,13 @@ const COLORS = {
     WHITE: 'white',
     YELLOW: 'yellow',
 }
+// Creates constant objects for Menu
+const MENU_OBJECTS = {
+    PENCIL: "PENCIL",
+    ERASER: "ERASER",
+    UNDO: "UNDO",
+    REDO: "REDO",
+    SAVE: "SAVE",
 
-export {COLORS};
+}
+export {COLORS, MENU_OBJECTS};
