@@ -5,6 +5,7 @@ const initialState = {
     /*Clicking any object results to change from active to action*/
     actionMenuObject: null
 }
+//export const menus = createSlice({
 export const menus = createSlice({
   name: "menu",
   initialState,

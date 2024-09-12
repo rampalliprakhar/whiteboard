@@ -22,13 +22,13 @@ const Menu = () => {
             <div className = {cx(styles.iconWrapper, {[styles.active]: activeMenuObject === MENU_OBJECTS.ERASER})} onClick={()=>{clickMenuHandler(MENU_OBJECTS.ERASER)}}>
                 <FontAwesomeIcon icon = {faEraser} className = {styles.icon} /> 
             </div>            
-            <div className = {cx(styles.iconWrapper)} onClick={()=>{clickActionHandler(MENU_OBJECTS.ERASER)}}>
+            <div className = {cx(styles.iconWrapper)} onClick={()=>{clickActionHandler(MENU_OBJECTS.UNDO)}}>
                 <FontAwesomeIcon icon = {faRotateLeft} className = {styles.icon} /> 
             </div>            
-            <div className = {cx(styles.iconWrapper)} onClick={()=>{clickActionHandler(MENU_OBJECTS.ERASER)}}>
+            <div className = {cx(styles.iconWrapper)} onClick={()=>{clickActionHandler(MENU_OBJECTS.REDO)}}>
                 <FontAwesomeIcon icon = {faRotateRight} className = {styles.icon} /> 
             </div>            
-            <div className = {cx(styles.iconWrapper)} onClick={()=>{clickActionHandler(MENU_OBJECTS.ERASER)}}>
+            <div className = {cx(styles.iconWrapper)} onClick={()=>{clickActionHandler(MENU_OBJECTS.SAVE)}}>
                 <FontAwesomeIcon icon = {faFileArrowDown} className = {styles.icon} /> 
             </div>            
         </div>
