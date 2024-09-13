@@ -12,6 +12,10 @@ const initialState = {
         color: COLORS.WHITE,
         size: 5,
     },
+    /* For future design purpose
+    [MENU_OBJECTS.CIRCLE]:{},
+    [MENU_OBJECTS.LINE]:{},
+    */
     [MENU_OBJECTS.UNDO]:{},
     [MENU_OBJECTS.REDO]:{},
     [MENU_OBJECTS.SAVE]:{},

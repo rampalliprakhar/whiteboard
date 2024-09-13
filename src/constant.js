@@ -11,9 +11,12 @@ const COLORS = {
 const MENU_OBJECTS = {
     PENCIL: "PENCIL",
     ERASER: "ERASER",
+    /* For future design purpose
+    CIRCLE: "Circle",
+    LINE: "LINE",
+    */
     UNDO: "UNDO",
     REDO: "REDO",
     SAVE: "SAVE",
-
 }
 export {COLORS, MENU_OBJECTS};

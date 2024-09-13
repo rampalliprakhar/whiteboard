@@ -1,5 +1,6 @@
 import { useRef, useEffect, useLayoutEffect } from 'react';
 import { useSelector, useDispatch} from 'react-redux';
+import { socket } from "@/socket";
 import { MENU_OBJECTS } from '@/constant';
 import { clickActionObject } from '@/slice/menuSlice';
 
@@ -19,12 +20,39 @@ const Board = () => {
         // Check whether the save button is pressed
         if (actionMenuObject === MENU_OBJECTS.SAVE) 
         {
+            // Create a constant object that converts the canvas data
             const imgURL = canvas.toDataURL()
+            // Create an anchor
             const image = document.createElement('a')
             image.href = imgURL
             image.download = 'image.jpg'
             image.click()
         }
+        /* For future design purpose
+        else if(actionMenuObject === MENU_OBJECTS.CIRCLE)
+        {
+            const createCircle = (cX, cY, radiusX, radiusY) =>
+            {
+                context.beginPath();
+                context.ellipse(cX, cY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+                context.stroke();
+                context.fill();
+                context.closePath();
+            }
+            createCircle()
+        }
+        else if(actionMenuObject === MENU_OBJECTS.LINE)
+        {
+            const createLine = (x, y) => 
+            {
+                context.beginPath()
+                context.lineTo(x,y)
+                context.stroke()
+                context.closePath()
+            }
+            createLine()
+        }
+        */
         // Check whether undo or redo button is pressed
         else if(actionMenuObject === MENU_OBJECTS.UNDO || actionMenuObject === MENU_OBJECTS.REDO)
         {
@@ -54,6 +82,13 @@ const Board = () => {
             console.log("config", config)
             changeConfig(config.color, config.size)
         }
+        changeConfig(color, size)
+        socket.on('changeConfig', configHandler)
+
+        return () => {
+            socket.off('changeConfig', configHandler)
+        }
+
     }, [color, size])
 
 
@@ -82,11 +117,13 @@ const Board = () => {
         const handleMouseDown = (e) => {
             shouldPaint.current = true
             startPosition(e.clientX || e.touches[0].clientX, e.clientY || e.touches[0].clientY)
+            socket.emit('beginPath', {x: e.clientX || e.touches[0].clientX, y: e.clientY || e.touches[0].clientY})
         }
 
         const handleMouseMove = (e) => {
             if (!shouldPaint.current) return
             draw(e.clientX || e.touches[0].clientX, e.clientY || e.touches[0].clientY)
+            socket.emit('drawLine', {x: e.clientX || e.touches[0].clientX, y: e.clientY || e.touches[0].clientY})
         }
 
         const handleMouseUp = (e) => {
@@ -97,6 +134,14 @@ const Board = () => {
             endPosition()
         }        
         
+        const startPositionHandler = (path) => {
+            startPosition(path.x, path.y)
+        }
+
+        const drawHandler = (path) => {
+            draw(path.x, path.y)
+        }
+
         canvas.addEventListener("mousedown", handleMouseDown)
         canvas.addEventListener("mousemove", handleMouseMove)
         canvas.addEventListener("mouseup", handleMouseUp)
@@ -104,6 +149,9 @@ const Board = () => {
         canvas.addEventListener("touchstart", handleMouseDown)
         canvas.addEventListener("touchmove", handleMouseMove)
         canvas.addEventListener("touchend", handleMouseUp)
+
+        socket.on('startPosition', startPositionHandler)
+        socket.on('draw', drawHandler)
 
         // Function to remove the listeners
         return () => {
@@ -114,11 +162,13 @@ const Board = () => {
             canvas.removeEventListener("touchstart", handleMouseDown)
             canvas.removeEventListener("touchmove", handleMouseMove)
             canvas.removeEventListener("touchend", handleMouseUp)
+
+            socket.off('startPosition', startPositionHandler)
+            socket.off('draw', drawHandler)
         }
     }, [])
     return (
         <canvas ref = {canvasRef}></canvas>
-
     )
 }
 export default Board;
