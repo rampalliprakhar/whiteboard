@@ -1,4 +1,4 @@
-import { useRef, useEffect, useLayoutEffect } from 'react';
+import { useRef, useEffect} from 'react';
 import { useSelector, useDispatch} from 'react-redux';
 import { socket } from "@/socket";
 import { MENU_OBJECTS } from '@/constant';
@@ -28,31 +28,6 @@ const Board = () => {
             image.download = 'image.jpg'
             image.click()
         }
-        /* For future design purpose
-        else if(actionMenuObject === MENU_OBJECTS.CIRCLE)
-        {
-            const createCircle = (cX, cY, radiusX, radiusY) =>
-            {
-                context.beginPath();
-                context.ellipse(cX, cY, radiusX, radiusY, 0, 0, 2 * Math.PI);
-                context.stroke();
-                context.fill();
-                context.closePath();
-            }
-            createCircle()
-        }
-        else if(actionMenuObject === MENU_OBJECTS.LINE)
-        {
-            const createLine = (x, y) => 
-            {
-                context.beginPath()
-                context.lineTo(x,y)
-                context.stroke()
-                context.closePath()
-            }
-            createLine()
-        }
-        */
         // Check whether undo or redo button is pressed
         else if(actionMenuObject === MENU_OBJECTS.UNDO || actionMenuObject === MENU_OBJECTS.REDO)
         {
@@ -64,6 +39,10 @@ const Board = () => {
             const doodleData = doodleHistory.current[displayHistory.current]
             // returns an ImageData object (doodleData) representing the underlying pixel data for a specified portion of the canvas.
             context.putImageData(doodleData, 0, 0)
+        }
+        else if(actionMenuObject === MENU_OBJECTS.CLEAR)
+        {
+            context.clearRect(0,0,canvas.width, canvas.height)
         }
         dispatch(clickActionObject(null))
     }, [actionMenuObject, dispatch])
@@ -91,8 +70,8 @@ const Board = () => {
 
     }, [color, size])
 
-
-    useLayoutEffect(() => {
+    //useLayoutEffect(() => {
+    useEffect(() => {
         if(!canvasRef.current) return
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
@@ -100,6 +79,7 @@ const Board = () => {
         // When adding elements in DOM
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+
         const startPosition = (x, y) => {
             context.beginPath()
             context.moveTo(x, y)
@@ -117,13 +97,13 @@ const Board = () => {
         const handleMouseDown = (e) => {
             shouldPaint.current = true
             startPosition(e.clientX || e.touches[0].clientX, e.clientY || e.touches[0].clientY)
-            socket.emit('beginPath', {x: e.clientX || e.touches[0].clientX, y: e.clientY || e.touches[0].clientY})
+            socket.emit('startPosition', {x: e.clientX || e.touches[0].clientX, y: e.clientY || e.touches[0].clientY})
         }
 
         const handleMouseMove = (e) => {
             if (!shouldPaint.current) return
             draw(e.clientX || e.touches[0].clientX, e.clientY || e.touches[0].clientY)
-            socket.emit('drawLine', {x: e.clientX || e.touches[0].clientX, y: e.clientY || e.touches[0].clientY})
+            socket.emit('draw', {x: e.clientX || e.touches[0].clientX, y: e.clientY || e.touches[0].clientY})
         }
 
         const handleMouseUp = (e) => {
@@ -141,7 +121,6 @@ const Board = () => {
         const drawHandler = (path) => {
             draw(path.x, path.y)
         }
-
         canvas.addEventListener("mousedown", handleMouseDown)
         canvas.addEventListener("mousemove", handleMouseMove)
         canvas.addEventListener("mouseup", handleMouseUp)

@@ -17,6 +17,7 @@ const MENU_OBJECTS = {
     */
     UNDO: "UNDO",
     REDO: "REDO",
+    CLEAR: "CLEAR",
     SAVE: "SAVE",
 }
 export {COLORS, MENU_OBJECTS};

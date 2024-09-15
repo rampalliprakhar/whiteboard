@@ -13,7 +13,7 @@
             background-color: theme('colors.text1');
         }
         .icon{
-            font-size: 20px; color: theme('colors.mainText'),
+            font-size: 20px; color: theme('colors.mainText');
         }
     }
 }

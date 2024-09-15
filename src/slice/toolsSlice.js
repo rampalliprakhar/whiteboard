@@ -18,6 +18,7 @@ const initialState = {
     */
     [MENU_OBJECTS.UNDO]:{},
     [MENU_OBJECTS.REDO]:{},
+    [MENU_OBJECTS.CLEAR]:{},
     [MENU_OBJECTS.SAVE]:{},
 }
 export const toolSlice = createSlice({
