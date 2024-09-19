@@ -17,6 +17,10 @@ const Board = () => {
         if(!canvasRef.current) return
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
+        // Function for reset
+        const clearDrawing = () =>{
+            context.clearRect(0,0,canvas.width, canvas.height)
+        }
         // Check whether the save button is pressed
         if (actionMenuObject === MENU_OBJECTS.SAVE) 
         {
@@ -42,7 +46,7 @@ const Board = () => {
         }
         else if(actionMenuObject === MENU_OBJECTS.CLEAR)
         {
-            context.clearRect(0,0,canvas.width, canvas.height)
+            clearDrawing()
         }
         dispatch(clickActionObject(null))
     }, [actionMenuObject, dispatch])
@@ -121,10 +125,13 @@ const Board = () => {
         const drawHandler = (path) => {
             draw(path.x, path.y)
         }
+
+        // Mouse control
         canvas.addEventListener("mousedown", handleMouseDown)
         canvas.addEventListener("mousemove", handleMouseMove)
         canvas.addEventListener("mouseup", handleMouseUp)
 
+        // Mobile control
         canvas.addEventListener("touchstart", handleMouseDown)
         canvas.addEventListener("touchmove", handleMouseMove)
         canvas.addEventListener("touchend", handleMouseUp)
