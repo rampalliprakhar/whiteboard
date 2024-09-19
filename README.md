@@ -38,3 +38,35 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+
+## Features
+
+## Collaborative: 
+
+    Users can draw on a canvas and share it with others in real time.
+
+## Real time:
+
+    The application communicates between clients and servers in real time via the WebSocket protocol.
+
+## Color and brush size:
+
+    Users may choose their preferred colors from the toolbox and adjust the brush size accordingly.
+
+## CLEAR:
+
+    Users can clear the whiteboard by clicking the trash button.
+
+## Undo/Redo:
+
+    Users can undo and redo as needed.
+
+## Save:
+
+    When users finish their work, they can save it by clicking the download button.
+
+## Prototype:
+
+![alt text](image-1.png)
+
+![alt text](image.png)
