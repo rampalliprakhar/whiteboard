@@ -1,6 +1,10 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { MENU_OBJECTS, COLORS} from "@/constant";
 const initialState = {
+    activeMenuObject: MENU_OBJECTS.PENCIL,
+    color: COLORS.BLACK,
+    size: 5,
+    backgroundColor: COLORS.WHITE,
     // states for each item, and its functions
     [MENU_OBJECTS.PENCIL]:{
         // Default color when clicked
@@ -20,9 +24,12 @@ const initialState = {
     [MENU_OBJECTS.REDO]:{},
     [MENU_OBJECTS.CLEAR]:{},
     [MENU_OBJECTS.SAVE]:{},
+    [MENU_OBJECTS.BACKGROUND]:{
+        color: COLORS.WHITE,
+    },
 }
 export const toolSlice = createSlice({
-    name: "tool",
+    name: "tools",
     initialState,
     reducers: {
       changeColor: (state, action) => {
@@ -31,9 +38,12 @@ export const toolSlice = createSlice({
       changeBrushSize: (state, action) => {
           state[action.payload.object].size = action.payload.size;
       },
+      changeBackgroundColor: (state, action) => {
+        state.backgroundColor = action.payload;
+      }
     },
 });
 
-export const {changeColor, changeBrushSize} = toolSlice.actions;
+export const {changeBackgroundColor, changeColor, changeBrushSize, changeActiveMenuObject} = toolSlice.actions;
 
 export default toolSlice.reducer;

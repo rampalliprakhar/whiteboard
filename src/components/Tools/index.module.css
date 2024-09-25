@@ -1,8 +1,10 @@
 .toolsContainer{
     @apply p-4 absolute top-1/4 left-4 w-64 rounded-md;
+    align-items:center;
     background-color: theme('colors.mainBackground');
     border: 1px solid theme('colors.mainBorder');
     box-shadow: theme('colors.mainShadow');
+    flex-wrap: wrap;
 
     .toolItems{
         @apply mb-5;

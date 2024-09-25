@@ -11,7 +11,7 @@ const Board = () => {
     const doodleHistory = useRef([])
     const displayHistory = useRef(0)
     const {activeMenuObject, actionMenuObject} = useSelector((state) => state.menu)
-    const {color, size} = useSelector((state) => state.tools[activeMenuObject])
+    const {color, size, backgroundColor} = useSelector((state) => state.tools[activeMenuObject])
     
     useEffect(()=>{
         if(!canvasRef.current) return
@@ -65,16 +65,24 @@ const Board = () => {
             console.log("config", config)
             changeConfig(config.color, config.size)
         }
+        canvas.style.backgroundColor = backgroundColor
+        // background handler
+        const backgroundHandler = (config) =>{
+            console.log('Changed background color: ', config)
+            canvas.style.backgroundColor = config.color
+        }
         changeConfig(color, size)
         socket.on('changeConfig', configHandler)
+        socket.on('changeBackground', backgroundHandler)
+        // create background color
 
         return () => {
             socket.off('changeConfig', configHandler)
+            socket.off('changeBackground', backgroundHandler)
         }
 
-    }, [color, size])
+    }, [color, size, backgroundColor])
 
-    //useLayoutEffect(() => {
     useEffect(() => {
         if(!canvasRef.current) return
         const canvas = canvasRef.current;
@@ -88,7 +96,6 @@ const Board = () => {
             context.beginPath()
             context.moveTo(x, y)
         }
-
         const draw = (x, y) => {
             context.lineTo(x, y)
             context.stroke()
@@ -97,7 +104,6 @@ const Board = () => {
         const endPosition = (x, y) => {
             context.beginPath();
         }
-        
         const handleMouseDown = (e) => {
             shouldPaint.current = true
             startPosition(e.clientX || e.touches[0].clientX, e.clientY || e.touches[0].clientY)

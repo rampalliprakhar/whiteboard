@@ -3,14 +3,16 @@ import { socket } from "@/socket";
 import { useSelector, useDispatch } from 'react-redux';
 import styles from './index.module.css';
 import { COLORS, MENU_OBJECTS } from '@/constant'
-import { changeColor, changeBrushSize } from '@/slice/toolsSlice';
+import { changeColor, changeBrushSize, changeActiveMenuObject,changeBackgroundColor } from '@/slice/toolsSlice';
+import { useEffect } from 'react';
 const Tools = () => {
     const dispatch = useDispatch();
+    const { activeMenuObject, color, size, backgroundColor} = useSelector((state) => state.tools)
+
     // Access active menu object
-    const activeMenuObject = useSelector((state) => state.menu.activeMenuObject)
-    const {color, size} = useSelector((state) => state.tools[activeMenuObject])
+    //const activeMenuObject = useSelector((state) => state.menu.activeMenuObject)
+    //const {color, size} = useSelector((state) => state.tools[activeMenuObject])
     const showStrokeToolOption = activeMenuObject === MENU_OBJECTS.PENCIL
-    //const showBrushToolOption = activeMenuObject === MENU_OBJECTS.PENCIL || activeMenuObject === MENU_OBJECTS.ERASER || activeMenuObject === MENU_OBJECTS.CIRCLE || activeMenuObject === MENU_OBJECTS.LINE
     const showBrushToolOption = activeMenuObject === MENU_OBJECTS.PENCIL || activeMenuObject === MENU_OBJECTS.ERASER
     const updateBrushSize = (e) => {
         dispatch(changeBrushSize({object: activeMenuObject, size: e.target.value}))
@@ -19,6 +21,10 @@ const Tools = () => {
     const updateBrushColor = (newColor) => {
         dispatch(changeColor({object: activeMenuObject, color: newColor}))
         socket.emit('changeConfig', {color: newColor, size })
+    }
+    const updateBackground = (newColor) => {
+        dispatch(changeBackgroundColor(newColor))
+        socket.emit('changeBackground', {color: newColor})
     }
         // Container for tools
         /* Container for individual items */
@@ -39,6 +45,16 @@ const Tools = () => {
                     <div className={styles.itemsContainer}>
                         <input type='range' min={1} max={10} step={1} onChange={updateBrushSize} value={size}/>
                     </div>
+                    <br></br>
+                    <div>
+                    <h4 className={styles.toolScript}>Background Color</h4>
+                    <div className={styles.itemsContainer}>
+                        <div className={cx(styles.colorOptions, {[styles.active]: backgroundColor === COLORS.WHITE})} style={{backgroundColor: COLORS.WHITE, border: '1px solid #000'}} onClick={() => updateBackground(COLORS.WHITE)}/>
+                        <div className={cx(styles.colorOptions, {[styles.active]: backgroundColor === COLORS.BLACK})} style={{backgroundColor: COLORS.BLACK}} onClick={() => updateBackground(COLORS.BLACK)}/>
+                        <div className={cx(styles.colorOptions, {[styles.active]: backgroundColor === COLORS.BLUE})} style={{backgroundColor: COLORS.BLUE}} onClick={() => updateBackground(COLORS.BLUE)} />
+                        <div className={cx(styles.colorOptions, {[styles.active]: backgroundColor === COLORS.GREEN})} style={{backgroundColor: COLORS.GREEN}} onClick={() => updateBackground(COLORS.GREEN)}/>
+                    </div>
+                </div>
             </div>}
     </div>)
 }
