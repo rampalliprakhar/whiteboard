@@ -1,4 +1,4 @@
-import { useRef, useEffect} from 'react';
+import { useRef, useEffect, useState, useCallback} from 'react';
 import { useSelector, useDispatch} from 'react-redux';
 import { socket } from "@/socket";
 import { MENU_OBJECTS } from '@/constant';
@@ -10,9 +10,22 @@ const Board = () => {
     const shouldPaint = useRef(false)
     const doodleHistory = useRef([])
     const displayHistory = useRef(0)
+    const [canvasSize, setCanvasSize] = useState({width: 0, height: 0})
     const {activeMenuObject, actionMenuObject} = useSelector((state) => state.menu)
     const {color, size, backgroundColor} = useSelector((state) => state.tools[activeMenuObject])
     
+    const resizeCanvas = useCallback(()=>{
+        if(typeof window === 'undefined'){
+            setCanvasSize({width: window.innerWidth, height: window.innerHeight})
+        }
+    },[]);
+    useEffect(()=>{
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        return () => {
+            window.removeEventListener('resize', resizeCanvas);
+        };
+    }, [resizeCanvas]);
     useEffect(()=>{
         if(!canvasRef.current) return
         const canvas = canvasRef.current;
@@ -92,6 +105,12 @@ const Board = () => {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
+        // Redraw content if necessary
+        if (doodleHistory.current.length > 0) {
+            const lastDoodle = doodleHistory.current[displayHistory.current];
+            context.putImageData(lastDoodle, 0, 0);
+        }
+
         const startPosition = (x, y) => {
             context.beginPath()
             context.moveTo(x, y)
@@ -158,9 +177,9 @@ const Board = () => {
             socket.off('startPosition', startPositionHandler)
             socket.off('draw', drawHandler)
         }
-    }, [])
+    }, [canvasSize])
     return (
-        <canvas ref = {canvasRef}></canvas>
+        <canvas ref = {canvasRef} style={{width:'100%', height:'100%'}}></canvas>
     )
 }
 export default Board;
