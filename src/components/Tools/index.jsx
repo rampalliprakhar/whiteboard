@@ -8,24 +8,23 @@ import { useEffect } from 'react';
 const Tools = () => {
     const dispatch = useDispatch();
     const { activeMenuObject, color, size, backgroundColor} = useSelector((state) => state.tools)
-
-    // Access active menu object
-    //const activeMenuObject = useSelector((state) => state.menu.activeMenuObject)
-    //const {color, size} = useSelector((state) => state.tools[activeMenuObject])
     const showStrokeToolOption = activeMenuObject === MENU_OBJECTS.PENCIL
     const showBrushToolOption = activeMenuObject === MENU_OBJECTS.PENCIL || activeMenuObject === MENU_OBJECTS.ERASER
+    
     const updateBrushSize = (e) => {
         dispatch(changeBrushSize({object: activeMenuObject, size: e.target.value}))
         socket.emit('changeConfig', {color, size: e.target.value })
-    }
+    };
+
     const updateBrushColor = (newColor) => {
         dispatch(changeColor({object: activeMenuObject, color: newColor}))
         socket.emit('changeConfig', {color: newColor, size })
-    }
+    };
+
     const updateBackground = (newColor) => {
         dispatch(changeBackgroundColor(newColor))
         socket.emit('changeBackground', {color: newColor})
-    }
+    };
         // Container for tools
         /* Container for individual items */
     return (<div className={styles.toolsContainer}>
