@@ -14,21 +14,11 @@ const Board = () => {
     const {activeMenuObject, actionMenuObject} = useSelector((state) => state.menu);
     const {color, size, backgroundColor} = useSelector((state) => state.tools[activeMenuObject]);
     
-    const resizeCanvas = useCallback(()=>{
-        if(typeof window === 'undefined'){
-            setCanvasSize({width: window.innerWidth, height: window.innerHeight});
-        };
-    },[]);
-
-    const [imageProps, setImageProps] = useState({
-        img: null,
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0,
-        isDragging: false,
-        isResizing: false,
-    });
+    const resizeCanvas = useCallback(() => {
+        if (typeof window !== 'undefined') {
+            setCanvasSize({ width: window.innerWidth, height: window.innerHeight });
+        }
+    }, []);
 
     useEffect(()=>{
         resizeCanvas();
@@ -38,9 +28,20 @@ const Board = () => {
         };
     }, [resizeCanvas]);
 
-    const fileChangeHandler = (event) =>{
+    const [imageProps, setImageProps] = useState({
+        img: null,
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        isDragging: false,
+        isResizing: false,
+        resizeCorner: null,
+    });
+
+    const fileChangeHandler = (event) => {
         const file = event.target.files[0];
-        if(file){
+        if (file) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const img = new Image();
@@ -54,6 +55,7 @@ const Board = () => {
                         height: img.height,
                         isDragging: false,
                         isResizing: false,
+                        resizeCorner: null,
                     });
                 };
             };
@@ -64,8 +66,7 @@ const Board = () => {
     const dropHandler = (e) => {
         e.preventDefault();
         const file = e.dataTransfer.files[0];
-        // Check if it's an image
-        if (file && file.type.startsWith('image/')) { 
+        if (file && file.type.startsWith('image/')) {
             const reader = new FileReader();
             reader.onload = (event) => {
                 const img = new Image();
@@ -79,6 +80,7 @@ const Board = () => {
                         height: img.height,
                         isDragging: false,
                         isResizing: false,
+                        resizeCorner: null,
                     });
                 };
             };
@@ -88,12 +90,6 @@ const Board = () => {
 
     const dragOverHandler = (e) => {
         e.preventDefault();
-    };
-
-    const drawImage = (context) =>{
-        if(imageProps.img){
-            context.drawImage(imageProps.img, imageProps.x, imageProps.y, imageProps.width, imageProps.height);
-        }
     };
 
     useEffect(()=>{
@@ -112,9 +108,28 @@ const Board = () => {
             context.clearRect(0,0,canvas.width, canvas.height);
         };
 
+        const drawImage = () => {
+            if (imageProps.img) {
+                context.drawImage(imageProps.img, imageProps.x, imageProps.y, imageProps.width, imageProps.height);
+                drawResizeHandler();
+            }
+        };
+
+        const drawResizeHandler = () => {
+            if (imageProps.img) {
+                const sizeHandle = 10;
+                context.fillStyle = 'red';
+                // Draw corners
+                context.fillRect(imageProps.x - sizeHandle / 2, imageProps.y - sizeHandle / 2, sizeHandle, sizeHandle); // Top-left
+                context.fillRect(imageProps.x + imageProps.width - sizeHandle / 2, imageProps.y - sizeHandle / 2, sizeHandle, sizeHandle); // Top-right
+                context.fillRect(imageProps.x - sizeHandle / 2, imageProps.y + imageProps.height - sizeHandle / 2, sizeHandle, sizeHandle); // Bottom-left
+                context.fillRect(imageProps.x + imageProps.width - sizeHandle / 2, imageProps.y + imageProps.height - sizeHandle / 2, sizeHandle, sizeHandle); // Bottom-right
+            }
+        };
+
         const redrawCanvas = () => {
             clearDrawing();
-            drawImage(context);
+            drawImage();
         };
 
         // Check whether the save button is pressed
@@ -145,9 +160,10 @@ const Board = () => {
         {
             clearDrawing();
         }
+
         dispatch(clickActionObject(null));
         redrawCanvas();
-    }, [actionMenuObject, dispatch, imageProps, drawImage]);
+    }, [actionMenuObject, dispatch, imageProps]);
 
     useEffect(() => {
         if (!canvasRef.current) return;
@@ -206,6 +222,8 @@ const Board = () => {
 
         const draw = (x, y) => {
             context.lineTo(x, y);
+            context.strokeStyle = color; // Set the stroke color
+            context.lineWidth = size; // Set the stroke size
             context.stroke();
         };
 
@@ -217,44 +235,61 @@ const Board = () => {
         const handleMouseDown = (e) => {
             const mouseX = e.clientX || e.touches[0].clientX;
             const mouseY = e.clientY || e.touches[0].clientY;
-            if(mouseX >= imageProps.x && mouseX <= imageProps.x + imageProps.width 
-                && mouseY >= imageProps.y && mouseY <= imageProps.y + imageProps.height){
-                    imageProps.isDragging = true;
-            } else{
+
+            if (imageProps.img) {
+                if (mouseX >= imageProps.x && mouseX <= imageProps.x + imageProps.width &&
+                    mouseY >= imageProps.y && mouseY <= imageProps.y + imageProps.height) {
+                    if (isOverResizeHandle(mouseX, mouseY)) {
+                        setImageProps((prev) => ({
+                            ...prev,
+                            isResizing: true,
+                            resizeCorner: getResizeCorner(mouseX, mouseY),
+                        }));
+                    } else {
+                        setImageProps((prev) => ({
+                            ...prev,
+                            isDragging: true,
+                        }));
+                    }
+                }
+            } else {
                 shouldPaint.current = true;
                 startPosition(mouseX, mouseY);
-                socket.emit('startPosition', {x: mouseX, y: mouseY});
+                socket.emit('startPosition', { x: mouseX, y: mouseY });
             }
         };
 
         const handleMouseMove = (e) => {
             const mouseX = e.clientX || e.touches[0].clientX;
             const mouseY = e.clientY || e.touches[0].clientY;
-            if(imageProps.isDragging){
+
+            if (imageProps.isDragging) {
                 setImageProps((prev) => ({
                     ...prev,
                     x: mouseX - imageProps.width / 2,
                     y: mouseY - imageProps.height / 2,
                 }));
-            }
-            else if(shouldPaint.current){
+            } else if (imageProps.isResizing) {
+                resizeImage(mouseX, mouseY);
+            } else if (shouldPaint.current) {
                 draw(mouseX, mouseY);
-                socket.emit('draw', {x: mouseX, y: mouseY});            
+                socket.emit('draw', { x: mouseX, y: mouseY });
             }
         };
 
-        const handleMouseUp = (e) => {
-            if(imageProps.isDragging){
-                imageProps.isDragging = false;
-            }
-            else{
+        const handleMouseUp = () => {
+            if (imageProps.isDragging) {
+                setImageProps((prev) => ({ ...prev, isDragging: false }));
+            } else if (imageProps.isResizing) {
+                setImageProps((prev) => ({ ...prev, isResizing: false }));
+            } else {
                 shouldPaint.current = false;
                 const doodleInfo = context.getImageData(0, 0, canvas.width, canvas.height);
                 doodleHistory.current.push(doodleInfo);
                 displayHistory.current = doodleHistory.current.length - 1;
                 endPosition();
             }
-        };        
+        }; 
         
         const startPositionHandler = (path) => {
             startPosition(path.x, path.y);
@@ -262,6 +297,67 @@ const Board = () => {
 
         const drawHandler = (path) => {
             draw(path.x, path.y);
+        };
+
+        const isOverResizeHandle = (mouseX, mouseY) => {
+            const sizeHandle = 10;
+            return (
+                (mouseX >= imageProps.x - sizeHandle / 2 && mouseY >= imageProps.y - sizeHandle / 2 && mouseX <= imageProps.x + sizeHandle / 2 && mouseY <= imageProps.y + sizeHandle / 2) || // Top-left
+                (mouseX >= imageProps.x + imageProps.width - sizeHandle / 2 && mouseY >= imageProps.y - sizeHandle / 2 && mouseX <= imageProps.x + imageProps.width + sizeHandle / 2 && mouseY <= imageProps.y + sizeHandle / 2) || // Top-right
+                (mouseX >= imageProps.x - sizeHandle / 2 && mouseY >= imageProps.y + imageProps.height - sizeHandle / 2 && mouseX <= imageProps.x + sizeHandle / 2 && mouseY <= imageProps.y + imageProps.height + sizeHandle / 2) || // Bottom-left
+                (mouseX >= imageProps.x + imageProps.width - sizeHandle / 2 && mouseY >= imageProps.y + imageProps.height - sizeHandle / 2 && mouseX <= imageProps.x + imageProps.width + sizeHandle / 2 && mouseY <= imageProps.y + imageProps.height + sizeHandle / 2) // Bottom-right
+            );
+        };
+
+        const getResizeCorner = (mouseX, mouseY) => {
+            const sizeHandle = 10; // Size of the resize handles
+            if (mouseX >= imageProps.x - sizeHandle / 2 && mouseY >= imageProps.y - sizeHandle / 2) return 'top-left';
+            if (mouseX >= imageProps.x + imageProps.width - sizeHandle / 2 && mouseY >= imageProps.y - sizeHandle / 2) return 'top-right';
+            if (mouseX >= imageProps.x - sizeHandle / 2 && mouseY >= imageProps.y + imageProps.height - sizeHandle / 2) return 'bottom-left';
+            if (mouseX >= imageProps.x + imageProps.width - sizeHandle / 2 && mouseY >= imageProps.y + imageProps.height - sizeHandle / 2) return 'bottom-right';
+            return null;
+        };
+
+        const resizeImage = (mouseX, mouseY) => {
+            if (!imageProps.img) return; // Prevent resizing if image is not loaded
+
+            const corner = imageProps.resizeCorner;
+            if (corner === 'top-left') {
+                const newWidth = imageProps.width - (mouseX - imageProps.x);
+                const newHeight = imageProps.height - (mouseY - imageProps.y);
+                setImageProps((prev) => ({
+                    ...prev,
+                    x: mouseX,
+                    y: mouseY,
+                    width: newWidth > 0 ? newWidth : 1, // Prevent negative width
+                    height: newHeight > 0 ? newHeight : 1, // Prevent negative height
+                }));
+            } else if (corner === 'top-right') {
+                const newWidth = mouseX - imageProps.x;
+                const newHeight = imageProps.height - (mouseY - imageProps.y);
+                setImageProps((prev) => ({
+                    ...prev,
+                    width: newWidth > 0 ? newWidth : 1,
+                    height: newHeight > 0 ? newHeight : 1,
+                }));
+            } else if (corner === 'bottom-left') {
+                const newWidth = imageProps.width - (mouseX - imageProps.x);
+                const newHeight = mouseY - imageProps.y;
+                setImageProps((prev) => ({
+                    ...prev,
+                    x: mouseX,
+                    height: newHeight > 0 ? newHeight : 1,
+                    width: newWidth > 0 ? newWidth : 1,
+                }));
+            } else if (corner === 'bottom-right') {
+                const newWidth = mouseX - imageProps.x;
+                const newHeight = mouseY - imageProps.y;
+                setImageProps((prev) => ({
+                    ...prev,
+                    width: newWidth > 0 ? newWidth : 1,
+                    height: newHeight > 0 ? newHeight : 1,
+                }));
+            }
         };
 
         // Mouse control
@@ -297,7 +393,7 @@ const Board = () => {
             socket.off('startPosition', startPositionHandler);
             socket.off('draw', drawHandler);
         }
-    }, [canvasSize, imageProps]);
+    }, [canvasSize, imageProps, color, size]);
     return (
         <div>
             <canvas ref = {canvasRef} style={{width:'100%', height:'100%'}}></canvas>
