@@ -4,7 +4,7 @@ import { MENU_OBJECTS } from '@/constant';
 import { clickMenuObject, clickActionObject} from '@/slice/menuSlice';
 import styles from "./index.module.css";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPencil, faEraser, faTrash, faUpload, faRotateLeft, faRotateRight, faFileArrowDown } from '@fortawesome/free-solid-svg-icons';
+import { faPencil, faEraser, faTrash, faRotateLeft, faRotateRight, faFileArrowDown } from '@fortawesome/free-solid-svg-icons';
 const Menu = () => {
     const dispatch = useDispatch();
     const activeMenuObject = useSelector((state) => {state.menu.activeMenuObject});
@@ -36,10 +36,7 @@ const Menu = () => {
             </div>
             <div className = {cx(styles.iconWrapper)} onClick={()=>{clickActionHandler(MENU_OBJECTS.SAVE)}}>
                 <FontAwesomeIcon icon = {faFileArrowDown} className = {styles.icon} /> 
-            </div>   
-            <div className = {cx(styles.iconWrapper)} onClick={()=>{clickActionHandler(MENU_OBJECTS.IMPORT)}}>
-                <FontAwesomeIcon icon= {faUpload} className={styles.icon} />    
-            </div>         
+            </div>          
         </div>
     );
 };

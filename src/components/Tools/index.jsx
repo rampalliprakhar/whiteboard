@@ -11,14 +11,19 @@ const Tools = () => {
     const showStrokeToolOption = activeMenuObject === MENU_OBJECTS.PENCIL
     const showBrushToolOption = activeMenuObject === MENU_OBJECTS.PENCIL || activeMenuObject === MENU_OBJECTS.ERASER
     
+    const emitColorAndSizeChange = (color, size) => {
+        socket.emit('changeConfig', { color, size });
+    };
+
     const updateBrushSize = (e) => {
-        dispatch(changeBrushSize({object: activeMenuObject, size: e.target.value}))
-        socket.emit('changeConfig', {color, size: e.target.value })
+        const newSize = e.target.value;
+        dispatch(changeBrushSize({object: activeMenuObject, size: newSize}))
+        emitColorAndSizeChange(color, newSize);
     };
 
     const updateBrushColor = (newColor) => {
         dispatch(changeColor({object: activeMenuObject, color: newColor}))
-        socket.emit('changeConfig', {color: newColor, size })
+        emitColorAndSizeChange(newColor, size);
     };
 
     const updateBackground = (newColor) => {

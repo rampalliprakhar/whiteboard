@@ -28,71 +28,10 @@ const Board = () => {
         };
     }, [resizeCanvas]);
 
-    const [imageProps, setImageProps] = useState({
-        img: null,
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0,
-        isDragging: false,
-        isResizing: false,
-    });
-
-    const imageLoadHandler = (img) => {
-        setImageProps({
-            img,
-            x: 50,
-            y: 50,
-            width: img.width,
-            height: img.height,
-            isDragging: false,
-            isResizing: false,
-        });
-        redrawCanvas();
-    };
-
-    const fileChangeHandler = (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.src = e.target.result;
-                img.onload = () => imageLoadHandler(img);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const dropHandler = (e) => {
-        e.preventDefault();
-        const file = e.dataTransfer.files[0];
-        if (file && file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = () => imageLoadHandler(img);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const dragOverHandler = (e) => {
-        e.preventDefault();
-    };
-
-    const drawImage = (context) => {
-        if (imageProps.img) {
-            context.drawImage(imageProps.img, imageProps.x, imageProps.y, imageProps.width, imageProps.height);
-        }
-    };
-
     const redrawCanvas = () => {
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
         context.clearRect(0, 0, canvas.width, canvas.height);
-        drawImage(context);
     };
 
     const clearDrawing = (context) => {
@@ -110,6 +49,27 @@ const Board = () => {
         image.click();
     };
 
+    const startPosition = (x, y) => {
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+        context.beginPath();
+        context.moveTo(x, y);
+    };
+
+    const draw = (x, y) => {
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+        context.lineWidth = size; // Use the current size from the state
+        context.lineTo(x, y);
+        context.stroke();
+    };
+
+    const endPosition = () => {
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+        context.beginPath();
+    };
+
     const actionMenuHandler = (context) => {
         const canvas = canvasRef.current;
         switch (actionMenuObject) {
@@ -125,14 +85,53 @@ const Board = () => {
             case MENU_OBJECTS.CLEAR:
                 clearDrawing(context);
                 break;
-            case MENU_OBJECTS.IMPORT:
-                document.getElementById('inputFile').click();
-                break;
             default:
                 break;
         }
         dispatch(clickActionObject(null));
     };
+
+    const handleMouseDown = (e) => {
+        const mouseX = e.clientX || (e.touches && e.touches[0].clientX);
+        const mouseY = e.clientY || (e.touches && e.touches[0].clientY);
+        shouldPaint.current = true;
+        startPosition(mouseX, mouseY);
+        socket.emit('startPosition', { x: mouseX, y: mouseY }); // Emit start position
+    };
+
+    const handleMouseMove = (e) => {
+        const mouseX = e.clientX || (e.touches && e.touches[0].clientX);
+        const mouseY = e.clientY || (e.touches && e.touches[0].clientY);
+        if (shouldPaint.current) {
+            draw(mouseX, mouseY);
+            socket.emit('draw', { x: mouseX, y: mouseY, color, size }); // Emit drawing data
+        }
+    };
+
+    const handleMouseUp = () => {
+        shouldPaint.current = false;
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+        const doodleInfo = context.getImageData(0, 0, canvas.width, canvas.height);
+        doodleHistory.current.push(doodleInfo);
+        displayHistory.current = doodleHistory.current.length - 1;
+        endPosition();
+    };
+
+    useEffect(() => {
+        socket.on('draw', ({ x, y, color, size }) => {
+            const canvas = canvasRef.current;
+            const context = canvas.getContext('2d');
+            context.strokeStyle = color;
+            context.lineWidth = size;
+            context.lineTo(x, y);
+            context.stroke();
+        });
+
+        return () => {
+            socket.off('draw'); // Clean up the listener
+        };
+    }, []);
 
     useEffect(() => {
         if (!canvasRef.current) return;
@@ -145,11 +144,6 @@ const Board = () => {
             context.lineWidth = size;
         };
 
-        const configHandler = (config) => {
-            console.log("config", config);
-            changeConfig(config.color, config.size);
-        };
-
         canvas.style.backgroundColor = backgroundColor;
 
         // Background handler
@@ -159,11 +153,9 @@ const Board = () => {
         };
 
         changeConfig(color, size);
-        socket.on('changeConfig', configHandler);
         socket.on('changeBackground', backgroundHandler);
 
         return () => {
-            socket.off('changeConfig', configHandler);
             socket.off('changeBackground', backgroundHandler);
         };
     }, [color, size, backgroundColor]);
@@ -183,60 +175,6 @@ const Board = () => {
             context.putImageData(lastDoodle, 0, 0);
         }
 
-        const startPosition = (x, y) => {
-            context.beginPath();
-            context.moveTo(x, y);
-        };
-
-        const draw = (x, y) => {
-            context.lineTo(x, y);
-            context.stroke();
-        };
-
-        const endPosition = () => {
-            context.beginPath();
-        };
-
-        const handleMouseDown = (e) => {
-            const mouseX = e.clientX || (e.touches && e.touches[0].clientX);
-            const mouseY = e.clientY || (e.touches && e.touches[0].clientY);
-            if (mouseX >= imageProps.x && mouseX <= imageProps.x + imageProps.width &&
-                mouseY >= imageProps.y && mouseY <= imageProps.y + imageProps.height) {
-                setImageProps((prev) => ({ ...prev, isDragging: true }));
-            } else {
-                shouldPaint.current = true;
-                startPosition(mouseX, mouseY);
-                socket.emit('startPosition', { x: mouseX, y: mouseY });
-            }
-        };
-
-        const handleMouseMove = (e) => {
-            const mouseX = e.clientX || (e.touches && e.touches[0].clientX);
-            const mouseY = e.clientY || (e.touches && e.touches[0].clientY);
-            if (imageProps.isDragging) {
-                setImageProps((prev) => ({
-                    ...prev,
-                    x: mouseX - imageProps.width / 2,
-                    y: mouseY - imageProps.height / 2,
-                }));
-            } else if (shouldPaint.current) {
-                draw(mouseX, mouseY);
-                socket.emit('draw', { x: mouseX, y: mouseY });
-            }
-        };
-
-        const handleMouseUp = () => {
-            if (imageProps.isDragging) {
-                setImageProps((prev) => ({ ...prev, isDragging: false }));
-            } else {
-                shouldPaint.current = false;
-                const doodleInfo = context.getImageData(0, 0, canvas.width, canvas.height);
-                doodleHistory.current.push(doodleInfo);
-                displayHistory.current = doodleHistory.current.length - 1;
-                endPosition();
-            }
-        };
-
         // Mouse control
         canvas.addEventListener("mousedown", handleMouseDown);
         canvas.addEventListener("mousemove", handleMouseMove);
@@ -245,9 +183,6 @@ const Board = () => {
         canvas.addEventListener("touchstart", handleMouseDown);
         canvas.addEventListener("touchmove", handleMouseMove);
         canvas.addEventListener("touchend", handleMouseUp);
-        // Drag and drop
-        canvas.addEventListener("dragover", dragOverHandler);
-        canvas.addEventListener("drop", dropHandler);
 
         // Handle Action Menu
         actionMenuHandler(context);
@@ -260,16 +195,12 @@ const Board = () => {
             canvas.removeEventListener("touchstart", handleMouseDown);
             canvas.removeEventListener("touchmove", handleMouseMove);
             canvas.removeEventListener("touchend", handleMouseUp);
-            canvas.removeEventListener("dragover", dragOverHandler);
-            canvas.removeEventListener("drop", dropHandler);
         };
-    }, [canvasSize, imageProps, actionMenuObject, dispatch]);
+    }, [canvasSize, actionMenuObject, dispatch]);
 
     return (
         <div>
             <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }}></canvas>
-            <input type="file" id="inputFile" style={{ display: 'none' }} onChange={fileChangeHandler} />
-            <button onClick={() => document.getElementById('inputFile').click()}>Import Image</button>
         </div>
     );
 };
