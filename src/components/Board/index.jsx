@@ -18,30 +18,16 @@ const Board = () => {
         if (typeof window !== 'undefined' && canvasRef.current) {
             const canvas = canvasRef.current;
             const context = canvas.getContext('2d');
-            const tempCanvas = document.createElement('canvas');
-            const tempContext = tempCanvas.getContext('2d');
             
-            // Save the current drawing
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
-            tempContext.drawImage(canvas, 0, 0);
+            // Store the current drawing
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
             
-            // Get the new dimensions
-            const newWidth = window.innerWidth;
-            const newHeight = window.innerHeight;
+            // Update dimensions
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
             
-            // Calculate scale factors
-            const scaleX = newWidth / canvas.width;
-            const scaleY = newHeight / canvas.height;
-            
-            // Resize canvas
-            canvas.width = newWidth;
-            canvas.height = newHeight;
-            
-            // Scale and restore the drawing
-            context.scale(scaleX, scaleY);
-            context.drawImage(tempCanvas, 0, 0);
-            context.scale(1/scaleX, 1/scaleY); // Reset scale
+            // Restore the drawing
+            context.putImageData(imageData, 0, 0);
             
             // Restore context settings
             context.strokeStyle = color;
@@ -49,8 +35,7 @@ const Board = () => {
             context.lineCap = 'round';
             context.lineJoin = 'round';
             
-            // Update canvas size state
-            setCanvasSize({ width: newWidth, height: newHeight });
+            setCanvasSize({ width: canvas.width, height: canvas.height });
         }
     }, [color, size]);
 
@@ -62,18 +47,18 @@ const Board = () => {
             resizeTimeout = setTimeout(resizeCanvas, 100);
         };
 
+        // Initial setup
+        if (canvasRef.current) {
+            const canvas = canvasRef.current;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            setCanvasSize({ width: canvas.width, height: canvas.height });
+        }
+
         window.addEventListener('resize', debouncedResize);
         return () => {
             window.removeEventListener('resize', debouncedResize);
             clearTimeout(resizeTimeout);
-        };
-    }, [resizeCanvas]);
-
-    useEffect(() => {
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-        return () => {
-            window.removeEventListener('resize', resizeCanvas);
         };
     }, [resizeCanvas]);
 
@@ -86,6 +71,36 @@ const Board = () => {
             context.putImageData(lastDoodle, 0, 0);
         }
     };
+
+    // Combined effect for color, size, and background changes
+    useEffect(() => {
+        if (!canvasRef.current) return;
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+
+        // Store current drawing
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        
+        // Update context settings
+        context.strokeStyle = color;
+        context.lineWidth = size;
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        
+        // Restore drawing
+        context.putImageData(imageData, 0, 0);
+        
+        // Update background
+        canvas.style.backgroundColor = backgroundColor;
+
+        // Background handler
+        const backgroundHandler = (config) => {
+            canvas.style.backgroundColor = config.color;
+        };
+
+        socket.on('changeBackground', backgroundHandler);
+        return () => socket.off('changeBackground', backgroundHandler);
+    }, [color, size, backgroundColor]);
 
     const clearDrawing = (context) => {
         const canvas = canvasRef.current;
@@ -102,31 +117,23 @@ const Board = () => {
         image.click();
     };
 
+    // Drawing functions remain the same but with simplified scaling
     const startPosition = (x, y) => {
-        const canvas = canvasRef.current;
-        const context = canvas.getContext('2d');
+        const context = canvasRef.current.getContext('2d');
         context.beginPath();
         context.moveTo(x, y);
     };
 
-    // Update the draw function to handle scaling
     const draw = (x, y) => {
-        const canvas = canvasRef.current;
-        const context = canvas.getContext('2d');
-        
-        // Calculate scale factors
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        
-        // Apply scaling to coordinates
-        const scaledX = x * scaleX;
-        const scaledY = y * scaleY;
-        
+        const context = canvasRef.current.getContext('2d');
         context.strokeStyle = color;
         context.lineWidth = size;
-        context.lineTo(scaledX, scaledY);
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        context.lineTo(x, y);
         context.stroke();
+        context.beginPath();
+        context.moveTo(x, y);
     };
 
     const endPosition = () => {
@@ -163,31 +170,39 @@ const Board = () => {
         dispatch(clickActionObject(null));
     };
 
+    // Update the color change effect to preserve drawing
     useEffect(() => {
         if (!canvasRef.current) return;
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
+
+        // Store current settings
+        const currentImageData = context.getImageData(0, 0, canvas.width, canvas.height);
         
-        // Set initial drawing settings
+        // Update context settings
         context.strokeStyle = color;
         context.lineWidth = size;
         context.lineCap = 'round';
         context.lineJoin = 'round';
-    }, [color, size]);
+        
+        // Restore the drawing
+        context.putImageData(currentImageData, 0, 0);
+
+        // Update background
+        canvas.style.backgroundColor = backgroundColor;
+    }, [color, size, backgroundColor]);
 
     // Update mouse/touch event handlers to handle scaling
+    // Mouse/touch event handlers with proper scaling
     const handleMouseDown = (e) => {
         e.preventDefault();
         const rect = canvasRef.current.getBoundingClientRect();
-        const scaleX = canvasRef.current.width / rect.width;
-        const scaleY = canvasRef.current.height / rect.height;
-        
-        const mouseX = ((e.clientX || (e.touches && e.touches[0].clientX)) - rect.left);
-        const mouseY = ((e.clientY || (e.touches && e.touches[0].clientY)) - rect.top);
+        const x = (e.clientX || e.touches[0].clientX) - rect.left;
+        const y = (e.clientY || e.touches[0].clientY) - rect.top;
         
         shouldPaint.current = true;
-        startPosition(mouseX * scaleX, mouseY * scaleY);
-        socket.emit('startPosition', { x: mouseX * scaleX, y: mouseY * scaleY });
+        startPosition(x, y);
+        socket.emit('startPosition', { x, y });
     };
 
     const handleMouseMove = (e) => {
@@ -195,19 +210,11 @@ const Board = () => {
         if (!shouldPaint.current) return;
         
         const rect = canvasRef.current.getBoundingClientRect();
-        const scaleX = canvasRef.current.width / rect.width;
-        const scaleY = canvasRef.current.height / rect.height;
+        const x = (e.clientX || e.touches[0].clientX) - rect.left;
+        const y = (e.clientY || e.touches[0].clientY) - rect.top;
         
-        const mouseX = ((e.clientX || (e.touches && e.touches[0].clientX)) - rect.left);
-        const mouseY = ((e.clientY || (e.touches && e.touches[0].clientY)) - rect.top);
-        
-        draw(mouseX, mouseY);
-        socket.emit('draw', { 
-            x: mouseX * scaleX, 
-            y: mouseY * scaleY, 
-            color, 
-            size 
-        });
+        draw(x, y);
+        socket.emit('draw', { x, y, color, size });
     };
 
     const handleMouseUp = () => {
@@ -217,28 +224,37 @@ const Board = () => {
         const doodleInfo = context.getImageData(0, 0, canvas.width, canvas.height);
         doodleHistory.current.push(doodleInfo);
         displayHistory.current = doodleHistory.current.length - 1;
-        endPosition();
+        context.beginPath();
     };
 
+    // Socket event handlers
     useEffect(() => {
         socket.on('startPosition', ({ x, y }) => {
-            const rect = canvasRef.current.getBoundingClientRect();
-            const scaleX = rect.width / canvasRef.current.width;
-            const scaleY = rect.height / canvasRef.current.height;
-            startPosition(x * scaleX, y * scaleY);
+            if (!canvasRef.current) return;
+            startPosition(x, y);
         });
 
         socket.on('draw', ({ x, y, color, size }) => {
-            const canvas = canvasRef.current;
-            const context = canvas.getContext('2d');
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = rect.width / canvas.width;
-            const scaleY = rect.height / canvas.height;
+            if (!canvasRef.current) return;
+            const context = canvasRef.current.getContext('2d');
             
+            // Store current settings
+            const currentColor = context.strokeStyle;
+            const currentSize = context.lineWidth;
+            
+            // Apply received settings
             context.strokeStyle = color;
             context.lineWidth = size;
-            context.lineTo(x * scaleX, y * scaleY);
+            
+            // Draw
+            context.lineTo(x, y);
             context.stroke();
+            context.beginPath();
+            context.moveTo(x, y);
+            
+            // Restore settings
+            context.strokeStyle = currentColor;
+            context.lineWidth = currentSize;
         });
 
         return () => {
@@ -246,6 +262,7 @@ const Board = () => {
             socket.off('draw');
         };
     }, []);
+
 
     useEffect(() => {
         if (!canvasRef.current) return;
@@ -319,7 +336,7 @@ const Board = () => {
                 style={{ 
                     width: '100%', 
                     height: '100%',
-                    touchAction: 'none' // Prevent default touch actions
+                    touchAction: 'none'
                 }}
             />
         </div>
