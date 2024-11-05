@@ -15,10 +15,59 @@ const Board = () => {
     const { color, size, backgroundColor } = useSelector((state) => state.tools[activeMenuObject]);
 
     const resizeCanvas = useCallback(() => {
-        if (typeof window !== 'undefined') {
-            setCanvasSize({ width: window.innerWidth, height: window.innerHeight });
+        if (typeof window !== 'undefined' && canvasRef.current) {
+            const canvas = canvasRef.current;
+            const context = canvas.getContext('2d');
+            const tempCanvas = document.createElement('canvas');
+            const tempContext = tempCanvas.getContext('2d');
+            
+            // Save the current drawing
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            tempContext.drawImage(canvas, 0, 0);
+            
+            // Get the new dimensions
+            const newWidth = window.innerWidth;
+            const newHeight = window.innerHeight;
+            
+            // Calculate scale factors
+            const scaleX = newWidth / canvas.width;
+            const scaleY = newHeight / canvas.height;
+            
+            // Resize canvas
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+            
+            // Scale and restore the drawing
+            context.scale(scaleX, scaleY);
+            context.drawImage(tempCanvas, 0, 0);
+            context.scale(1/scaleX, 1/scaleY); // Reset scale
+            
+            // Restore context settings
+            context.strokeStyle = color;
+            context.lineWidth = size;
+            context.lineCap = 'round';
+            context.lineJoin = 'round';
+            
+            // Update canvas size state
+            setCanvasSize({ width: newWidth, height: newHeight });
         }
-    }, []);
+    }, [color, size]);
+
+    // Add a debounced resize handler to prevent too frequent updates
+    useEffect(() => {
+        let resizeTimeout;
+        const debouncedResize = () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(resizeCanvas, 100);
+        };
+
+        window.addEventListener('resize', debouncedResize);
+        return () => {
+            window.removeEventListener('resize', debouncedResize);
+            clearTimeout(resizeTimeout);
+        };
+    }, [resizeCanvas]);
 
     useEffect(() => {
         resizeCanvas();
@@ -32,6 +81,10 @@ const Board = () => {
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
         context.clearRect(0, 0, canvas.width, canvas.height);
+        if (doodleHistory.current.length > 0 && displayHistory.current >= 0) {
+            const lastDoodle = doodleHistory.current[displayHistory.current];
+            context.putImageData(lastDoodle, 0, 0);
+        }
     };
 
     const clearDrawing = (context) => {
@@ -56,11 +109,23 @@ const Board = () => {
         context.moveTo(x, y);
     };
 
+    // Update the draw function to handle scaling
     const draw = (x, y) => {
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
-        context.lineWidth = size; // Use the current size from the state
-        context.lineTo(x, y);
+        
+        // Calculate scale factors
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        
+        // Apply scaling to coordinates
+        const scaledX = x * scaleX;
+        const scaledY = y * scaleY;
+        
+        context.strokeStyle = color;
+        context.lineWidth = size;
+        context.lineTo(scaledX, scaledY);
         context.stroke();
     };
 
@@ -77,13 +142,20 @@ const Board = () => {
                 saveImage(canvas);
                 break;
             case MENU_OBJECTS.UNDO:
-                if (displayHistory.current > 0) displayHistory.current -= 1;
+                if (displayHistory.current > 0) {
+                    displayHistory.current -= 1;
+                    redrawCanvas(); // Add this
+                }
                 break;
             case MENU_OBJECTS.REDO:
-                if (displayHistory.current < doodleHistory.current.length - 1) displayHistory.current += 1;
+                if (displayHistory.current < doodleHistory.current.length - 1) {
+                    displayHistory.current += 1;
+                    redrawCanvas(); // Add this
+                }
                 break;
             case MENU_OBJECTS.CLEAR:
                 clearDrawing(context);
+                socket.emit('clear'); // Add this to sync clearing
                 break;
             default:
                 break;
@@ -91,21 +163,51 @@ const Board = () => {
         dispatch(clickActionObject(null));
     };
 
+    useEffect(() => {
+        if (!canvasRef.current) return;
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+        
+        // Set initial drawing settings
+        context.strokeStyle = color;
+        context.lineWidth = size;
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+    }, [color, size]);
+
+    // Update mouse/touch event handlers to handle scaling
     const handleMouseDown = (e) => {
-        const mouseX = e.clientX || (e.touches && e.touches[0].clientX);
-        const mouseY = e.clientY || (e.touches && e.touches[0].clientY);
+        e.preventDefault();
+        const rect = canvasRef.current.getBoundingClientRect();
+        const scaleX = canvasRef.current.width / rect.width;
+        const scaleY = canvasRef.current.height / rect.height;
+        
+        const mouseX = ((e.clientX || (e.touches && e.touches[0].clientX)) - rect.left);
+        const mouseY = ((e.clientY || (e.touches && e.touches[0].clientY)) - rect.top);
+        
         shouldPaint.current = true;
-        startPosition(mouseX, mouseY);
-        socket.emit('startPosition', { x: mouseX, y: mouseY }); // Emit start position
+        startPosition(mouseX * scaleX, mouseY * scaleY);
+        socket.emit('startPosition', { x: mouseX * scaleX, y: mouseY * scaleY });
     };
 
     const handleMouseMove = (e) => {
-        const mouseX = e.clientX || (e.touches && e.touches[0].clientX);
-        const mouseY = e.clientY || (e.touches && e.touches[0].clientY);
-        if (shouldPaint.current) {
-            draw(mouseX, mouseY);
-            socket.emit('draw', { x: mouseX, y: mouseY, color, size }); // Emit drawing data
-        }
+        e.preventDefault();
+        if (!shouldPaint.current) return;
+        
+        const rect = canvasRef.current.getBoundingClientRect();
+        const scaleX = canvasRef.current.width / rect.width;
+        const scaleY = canvasRef.current.height / rect.height;
+        
+        const mouseX = ((e.clientX || (e.touches && e.touches[0].clientX)) - rect.left);
+        const mouseY = ((e.clientY || (e.touches && e.touches[0].clientY)) - rect.top);
+        
+        draw(mouseX, mouseY);
+        socket.emit('draw', { 
+            x: mouseX * scaleX, 
+            y: mouseY * scaleY, 
+            color, 
+            size 
+        });
     };
 
     const handleMouseUp = () => {
@@ -119,17 +221,29 @@ const Board = () => {
     };
 
     useEffect(() => {
+        socket.on('startPosition', ({ x, y }) => {
+            const rect = canvasRef.current.getBoundingClientRect();
+            const scaleX = rect.width / canvasRef.current.width;
+            const scaleY = rect.height / canvasRef.current.height;
+            startPosition(x * scaleX, y * scaleY);
+        });
+
         socket.on('draw', ({ x, y, color, size }) => {
             const canvas = canvasRef.current;
             const context = canvas.getContext('2d');
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = rect.width / canvas.width;
+            const scaleY = rect.height / canvas.height;
+            
             context.strokeStyle = color;
             context.lineWidth = size;
-            context.lineTo(x, y);
+            context.lineTo(x * scaleX, y * scaleY);
             context.stroke();
         });
 
         return () => {
-            socket.off('draw'); // Clean up the listener
+            socket.off('startPosition');
+            socket.off('draw');
         };
     }, []);
 
@@ -140,8 +254,8 @@ const Board = () => {
 
         // Resuable method to manipulate color and brush size
         const changeConfig = (color, size) => {
-            context.strokeStyle = color;
-            context.lineWidth = size;
+            context.strokeStyle = color; // Update stroke color
+            context.lineWidth = size; // Update line width
         };
 
         canvas.style.backgroundColor = backgroundColor;
@@ -196,11 +310,18 @@ const Board = () => {
             canvas.removeEventListener("touchmove", handleMouseMove);
             canvas.removeEventListener("touchend", handleMouseUp);
         };
-    }, [canvasSize, actionMenuObject, dispatch]);
+    }, [canvasSize, actionMenuObject, dispatch, handleMouseDown, handleMouseMove, handleMouseUp]);
 
     return (
-        <div>
-            <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }}></canvas>
+        <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
+            <canvas 
+                ref={canvasRef} 
+                style={{ 
+                    width: '100%', 
+                    height: '100%',
+                    touchAction: 'none' // Prevent default touch actions
+                }}
+            />
         </div>
     );
 };
