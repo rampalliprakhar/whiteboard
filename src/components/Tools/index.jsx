@@ -12,18 +12,18 @@ const Tools = () => {
     const showBrushToolOption = activeMenuObject === MENU_OBJECTS.PENCIL || activeMenuObject === MENU_OBJECTS.ERASER
     
     const emitColorAndSizeChange = (color, size) => {
-        socket.emit('changeConfig', { color, size });
+        socket.emit('changeConfig', { color, size }); // Emit the new color and size
     };
 
     const updateBrushSize = (e) => {
         const newSize = e.target.value;
-        dispatch(changeBrushSize({object: activeMenuObject, size: newSize}))
-        emitColorAndSizeChange(color, newSize);
+        dispatch(changeBrushSize({ object: activeMenuObject, size: newSize })); // Update Redux state
+        emitColorAndSizeChange(color, newSize); // Emit the new size
     };
-
+    
     const updateBrushColor = (newColor) => {
-        dispatch(changeColor({object: activeMenuObject, color: newColor}))
-        emitColorAndSizeChange(newColor, size);
+        dispatch(changeColor({ object: activeMenuObject, color: newColor })); // Update Redux state
+        emitColorAndSizeChange(newColor, size); // Emit the new color
     };
 
     const updateBackground = (newColor) => {
