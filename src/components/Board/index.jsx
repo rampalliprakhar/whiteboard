@@ -13,6 +13,8 @@ const Board = () => {
     const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
     const { activeMenuObject, actionMenuObject } = useSelector((state) => state.menu);
     const { color, size, backgroundColor } = useSelector((state) => state.tools[activeMenuObject]);
+    const [alertMessage, setAlertMessage] = useState('');
+    const [userId, setUserId] = useState(socket.id);
 
     const resizeCanvas = useCallback(() => {
         if (typeof window !== 'undefined' && canvasRef.current) {
@@ -38,6 +40,18 @@ const Board = () => {
             setCanvasSize({ width: canvas.width, height: canvas.height });
         }
     }, [color, size]);
+
+    useEffect(() => {
+        socket.on('alert', ({ message }) => {
+            setAlertMessage(message);
+        });
+
+        // Cleanup on component unmount
+        return () => {
+            socket.off('alert');
+        };
+    }, []);
+
 
     // Add a debounced resize handler to prevent too frequent updates
     useEffect(() => {
@@ -124,10 +138,10 @@ const Board = () => {
         context.moveTo(x, y);
     };
 
-    const draw = (x, y) => {
+    const draw = (x, y, color) => {
         const context = canvasRef.current.getContext('2d');
         context.strokeStyle = color;
-        context.lineWidth = size;
+        context.lineWidth = 5;
         context.lineCap = 'round';
         context.lineJoin = 'round';
         context.lineTo(x, y);
@@ -137,9 +151,12 @@ const Board = () => {
     };
 
     const endPosition = () => {
+        shouldPaint.current = false;
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
+        //const doodleInfo = context.getImageData(0, 0, canvas.width, canvas.height);
         context.beginPath();
+        socket.emit('stopDrawing', userId);  // Notify server when the user stops drawing
     };
 
     const actionMenuHandler = (context) => {
@@ -202,7 +219,7 @@ const Board = () => {
         
         shouldPaint.current = true;
         startPosition(x, y);
-        socket.emit('startPosition', { x, y });
+        socket.emit('startPosition', { userId });
     };
 
     const handleMouseMove = (e) => {
@@ -213,18 +230,23 @@ const Board = () => {
         const x = (e.clientX || e.touches[0].clientX) - rect.left;
         const y = (e.clientY || e.touches[0].clientY) - rect.top;
         
-        draw(x, y);
-        socket.emit('draw', { x, y, color, size });
+        if (alertMessage === 'Two users are drawing at the same time!') {
+            draw(x, y, '#FF0000');
+        } else {
+            draw(x, y, '#000000');
+        }
+        socket.emit('draw', { x, y, userID });
     };
 
     const handleMouseUp = () => {
         shouldPaint.current = false;
-        const canvas = canvasRef.current;
-        const context = canvas.getContext('2d');
-        const doodleInfo = context.getImageData(0, 0, canvas.width, canvas.height);
-        doodleHistory.current.push(doodleInfo);
-        displayHistory.current = doodleHistory.current.length - 1;
-        context.beginPath();
+        // const canvas = canvasRef.current;
+        // const context = canvas.getContext('2d');
+        // const doodleInfo = context.getImageData(0, 0, canvas.width, canvas.height);
+        // doodleHistory.current.push(doodleInfo);
+        // displayHistory.current = doodleHistory.current.length - 1;
+        // context.beginPath();
+        endPosition();
     };
 
     // Socket event handlers
@@ -331,12 +353,14 @@ const Board = () => {
 
     return (
         <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
+            {alertMessage && <div className="alert">{alertMessage}</div>}
             <canvas 
                 ref={canvasRef} 
                 style={{ 
                     width: '100%', 
                     height: '100%',
-                    touchAction: 'none'
+                    touchAction: 'none',
+                    border: '2px solid black',
                 }}
             />
         </div>
