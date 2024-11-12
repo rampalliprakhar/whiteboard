@@ -141,11 +141,11 @@ const Board = () => {
     const draw = (x, y, color) => {
         const context = canvasRef.current.getContext('2d');
         context.strokeStyle = color;
-        context.lineWidth = 5;
+        context.lineWidth = size;
         context.lineCap = 'round';
         context.lineJoin = 'round';
         context.lineTo(x, y);
-        context.stroke();
+        context.stroke();          
         context.beginPath();
         context.moveTo(x, y);
     };
@@ -154,7 +154,7 @@ const Board = () => {
         shouldPaint.current = false;
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
-        //const doodleInfo = context.getImageData(0, 0, canvas.width, canvas.height);
+        const doodleInfo = context.getImageData(0, 0, canvas.width, canvas.height);
         context.beginPath();
         socket.emit('stopDrawing', userId);  // Notify server when the user stops drawing
     };
@@ -230,22 +230,19 @@ const Board = () => {
         const x = (e.clientX || e.touches[0].clientX) - rect.left;
         const y = (e.clientY || e.touches[0].clientY) - rect.top;
         
-        if (alertMessage === 'Two users are drawing at the same time!') {
-            draw(x, y, '#FF0000');
-        } else {
-            draw(x, y, '#000000');
-        }
-        socket.emit('draw', { x, y, userID });
+        const drawColor = alertMessage === 'Two users are drawing at the same time!' ? '#FF0000' : color;
+        draw(x, y, drawColor);
+        socket.emit('draw', { x, y, color:drawColor, size, userId });
     };
 
     const handleMouseUp = () => {
         shouldPaint.current = false;
-        // const canvas = canvasRef.current;
-        // const context = canvas.getContext('2d');
-        // const doodleInfo = context.getImageData(0, 0, canvas.width, canvas.height);
-        // doodleHistory.current.push(doodleInfo);
-        // displayHistory.current = doodleHistory.current.length - 1;
-        // context.beginPath();
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+        const doodleInfo = context.getImageData(0, 0, canvas.width, canvas.height);
+        doodleHistory.current.push(doodleInfo);
+        displayHistory.current = doodleHistory.current.length - 1;
+        context.beginPath();
         endPosition();
     };
 
