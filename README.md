@@ -1,72 +1,89 @@
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
-## Getting Started
+# Collaborative Whiteboard App
 
-First, run the development server:
+## Overview
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- This is a real-time Collaborative Whiteboard application built with React, Redux, Socket.io, and Node.js. 
+- The app allows multiple users to draw and interact with a shared canvas in real-time. 
+- The core features include drawing, erasing, changing brush size and color, and more.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Technologies Used:
 
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
-
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
-
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
-
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- Frontend: React, Redux, CSS Modules, Socket.io Client
+- Backend: Node.js, Express, Socket.io Server
+- Real-Time Communication: WebSockets (using socket.io)
+- State Management: Redux
+- Deployment: Vercel
 
 ## Features
 
-## Collaborative: 
+- Real-Time Drawing: Multiple users can draw on the whiteboard simultaneously.
+- Brush Customization: Change the drawing color and size.
+- Undo & Redo: Supports undo and redo actions to revert or repeat drawing actions.
+- Eraser Tool: Allows users to erase their drawings.
+- Background Color: Users can customize the background color.
+- Save Canvas: Save your current whiteboard as an image.
+- Multi-User Interaction: Alerts when two users are drawing at the same time.
 
-    Users can draw on a canvas and share it with others in real time.
+## How It Works
+- The app uses Socket.io for real-time communication, which allows multiple users to interact with the whiteboard in real-time. 
+- Each drawing event (such as mouse movements, brush size/color changes, etc.) is emitted to the server, which broadcasts it to all other connected clients.
 
-## Real time:
+- When a user draws on the whiteboard, the client sends the drawing position, color, and brush size to the backend. 
+- The backend then broadcasts these updates to all other users, who can see the changes in real-time.
 
-    The application communicates between clients and servers in real time via the WebSocket protocol.
+## Installation
+To get started with this project locally, follow these steps:
 
-## Color and brush size:
+1. Clone the repository
+``` bash
+git clone https://github.com/rampalliprakhar/whiteboard.git
+cd whiteboard
+```
+2. Install dependencies
+For the frontend (React):
 
-    Users may choose their preferred colors from the toolbox and adjust the brush size accordingly.
+```bash
+npm install
+```
+3. Run the app
+Frontend (React):
+```bash
+npm run dev
+```
+Visit http://localhost:3000 in your browser to see the app in action.
 
-## CLEAR:
+## Usage
 
-    Users can clear the whiteboard by clicking the trash button.
-
-## Undo/Redo:
-
-    Users can undo and redo as needed.
-
-## Save:
-
-    When users finish their work, they can save it by clicking the download button.
+- Start Drawing: Click anywhere on the canvas to start drawing. You can adjust the brush color and size from the tool options on the left side.
+- Undo/Redo: Use the buttons on the toolbar to undo or redo your last drawing action.
+- Change Background Color: Click the background color options to change the whiteboard background.
+- Clear the Board: Use the "Clear" button to clear the entire board.
+- Save the Canvas: Click the "Save" button to save the current state of the canvas as an image.
 
 ## Prototype:
 
 ![alt text](image-1.png)
 
 ![alt text](image.png)
+
+## Backend Architecture
+
+[https://github.com/rampalliprakhar/whiteboardServer](https://github.com/rampalliprakhar/whiteboardServer)
+
+The backend consists of an Express server with the following key features:
+
+- Socket.io: Used for real-time bidirectional communication between clients and server.
+- Active Drawers: The backend keeps track of users actively drawing on the whiteboard and notifies other users when two users are drawing simultaneously.
+- Configuration Updates: When a user changes the brush color or size, or the background color, the configuration is broadcast to all connected users.
+
+## Deployment
+You can access the deployed version of the app at the following URL:
+[https://whiteboard-app.vercel.app ](https://whiteboard-two-gilt.vercel.app/)
+
+## Future Improvements
+
+- Authentication: Allow users to sign in, so they can save and load their sessions.
+- User Profiles: Give users the ability to save their drawing preferences (e.g., default colors, brush sizes).
+- Drawing Tools: Implement additional tools like shapes, lines, and text.
