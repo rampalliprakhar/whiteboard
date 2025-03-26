@@ -1,10 +1,25 @@
 .toolsContainer{
-    @apply p-4 absolute top-1/4 left-4 w-64 rounded-md;
-    align-items:center;
+    @apply p-4 rounded-md;
     background-color: theme('colors.mainBackground');
     border: 1px solid theme('colors.mainBorder');
     box-shadow: theme('colors.mainShadow');
-    flex-wrap: wrap;
+    left: 10px;
+    position: fixed;
+    top: 80px;
+    width: 250px;
+    
+
+    @media(max-width: 768px){
+        bottom: 10px;
+        left: 50%;
+        max-width: 400px;
+        padding: 12px;
+        position: fixed;
+        top: auto;
+        transform: translateX(-50%);
+        width: 95%;
+    }
+
 
     .toolItems{
         @apply mb-5;
@@ -15,6 +30,11 @@
         }
         .itemsContainer{
             @apply flex justify-between mt-2;
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: flex-start;
 
             .colorOptions{
                 @apply h-4 w-4 rounded-sm cursor-pointer;
@@ -25,4 +45,11 @@
             }
         }
     }
+}
+
+.itemsContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(30px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
 }
