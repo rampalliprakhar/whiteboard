@@ -8,5 +8,8 @@ export const socket = io(URL, {
     transports: ['websocket'],
     cors:{
         origin: 'https://whiteboardserver-drir.onrender.com'
-    }
+    },
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
 });
