@@ -19,6 +19,7 @@ const Board = () => {
   );
   const [alertMessage, setAlertMessage] = useState("");
   const [userId, setUserId] = useState(socket.id);
+  const activeDrawing = new Map();
 
   const resizeCanvas = useCallback(() => {
     if (typeof window !== "undefined" && canvasRef.current) {
@@ -275,32 +276,38 @@ const Board = () => {
       startPosition(x, y);
     });
 
-    socket.on("draw", ({ x, y, color, size }) => {
+    socket.on("draw", ({ x, y, color, size, userId }) => {
       if (!canvasRef.current) return;
       const context = canvasRef.current.getContext("2d");
 
-      // Store current settings
-      const currentColor = context.strokeStyle;
-      const currentSize = context.lineWidth;
-
-      // Apply received settings
       context.strokeStyle = color;
       context.lineWidth = size;
 
-      // Draw
-      context.lineTo(x, y);
-      context.stroke();
-      context.beginPath();
-      context.moveTo(x, y);
+      // Start new path for the user if not exists
+      if(!activeDrawing.has(userId)) {
+        context.beginPath();
+        context.moveTo(x, y);
+      } else {
+        const lastPosition = activeDrawing.get(userId);
+        context.beginPath();
+        context.moveTo(lastPosition.x, lastPosition.y);
+        context.lineTo(x, y);
+        context.stroke();
+      }
+      // Update last position
+      activeDrawing.set(userId, {x,y});
+    });
 
-      // Restore settings
-      context.strokeStyle = currentColor;
-      context.lineWidth = currentSize;
+    socket.on("stopDrawing", (userId) => {
+      activeDrawing.delete(userId);
+      const context = canvasRef.current.getContext("2d");
+      context.beginPath();
     });
 
     return () => {
       socket.off("startPosition");
       socket.off("draw");
+      socket.off("stopDrawing");
     };
   }, []);
 
