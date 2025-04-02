@@ -7,4 +7,8 @@ export const store = configureStore({
         menu: MenuReducer,
         tools: ToolsReducer,
     },
+    middleware: (getDefaultMiddleware) =>
+         getDefaultMiddleware({
+            serializableCheck: false,
+         })
 });
