@@ -12,16 +12,23 @@ export default function Home() {
   }, [])
 
   const createNewSession = async () => {
-    const { data, error } = await supabase
-      .from('whiteboard_sessions')
-      .insert({ 
-        created_by: user?.id || 'anonymous',
-        data: {}
-      })
-      .select('id')
-    
-    if (data && data[0]) {
-      window.location.href = `/collaborative/${data[0].id}`
+    try {
+        const { data, error } = await supabase
+            .from('whiteboard_sessions')
+            .insert({
+                created_by: user?.id || 'anonymous',
+                data: {}
+            })
+            .select('id')
+            .single()
+
+        if (error) throw error
+        
+        if (data) {
+            window.location.href = `/collaborative/${data.id}`
+        }
+    } catch (error) {
+        console.error('Error creating session:', error)
     }
   }
 
