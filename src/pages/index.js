@@ -1,7 +1,7 @@
 import Link from 'next/link'
-import { COLORS } from '@/constant'
 import { supabase } from '@/lib/supabaseClient'
 import { useState, useEffect } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 
 export default function Home() {
   const [user, setUser] = useState(null)
@@ -16,7 +16,7 @@ export default function Home() {
         const { data, error } = await supabase
             .from('whiteboard_sessions')
             .insert({
-                created_by: user?.id || 'anonymous',
+                created_by: user?.id || uuidv4(),
                 data: {}
             })
             .select('id')
