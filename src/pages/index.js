@@ -16,7 +16,7 @@ export default function Home() {
         const { data, error } = await supabase
             .from('whiteboard_sessions')
             .insert({
-                created_by: user?.id || uuidv4(),
+                created_by: 'annonymous',
                 data: {}
             })
             .select('id')
