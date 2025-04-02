@@ -1,7 +1,27 @@
 import Link from 'next/link'
 import { COLORS } from '@/constant'
+import { supabase } from '@/lib/supabaseClient'
+import { useState, useEffect } from 'react'
 
 export default function Home() {
+  const [user, setUser] = useState(null)
+  const [sessions, setSessions] = useState([])
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user))
+  }, [])
+
+  const createNewSession = async () => {
+    const { data, error } = await supabase
+      .from('whiteboard_sessions')
+      .insert([{ created_by: user?.id || 'anonymous' }])
+      .select()
+    
+    if (data) {
+      window.location.href = `/collaborative/${data[0].id}`
+    }
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-mainBackground">
       <div className="text-center mb-12">
@@ -11,28 +31,26 @@ export default function Home() {
 
       <div className="flex gap-8">
         <Link href="/single">
-          <div className="p-8 bg-white rounded-xl shadow-lg hover:scale-105 transition-transform cursor-pointer" style={{borderColor: COLORS.BLUE}}>
+          <div className="p-8 bg-white rounded-xl shadow-lg hover:scale-105 transition-transform cursor-pointer">
             <h2 className="text-2xl font-bold mb-3">Single User Mode</h2>
             <ul className="text-left">
               <li>✓ Full drawing capabilities</li>
               <li>✓ Local state management</li>
               <li>✓ Save & export features</li>
-              <li>✓ Perfect for personal use</li>
             </ul>
           </div>
         </Link>
 
-        <Link href="/collaborative">
-          <div className="p-8 bg-white rounded-xl shadow-lg hover:scale-105 transition-transform cursor-pointer" style={{borderColor: COLORS.GREEN}}>
-            <h2 className="text-2xl font-bold mb-3">Multi User Mode</h2>
-            <ul className="text-left">
-              <li>✓ Real-time collaboration</li>
-              <li>✓ Multiple users support</li>
-              <li>✓ Live drawing updates</li>
-              <li>✓ User presence indicators</li>
-            </ul>
-          </div>
-        </Link>
+        <div 
+          onClick={createNewSession}
+          className="p-8 bg-white rounded-xl shadow-lg hover:scale-105 transition-transform cursor-pointer">
+          <h2 className="text-2xl font-bold mb-3">Start Collaboration</h2>
+          <ul className="text-left">
+            <li>✓ Real-time collaboration</li>
+            <li>✓ Shareable link</li>
+            <li>✓ Multiple users support</li>
+          </ul>
+        </div>
       </div>
     </div>
   )
