@@ -14,10 +14,13 @@ export default function Home() {
   const createNewSession = async () => {
     const { data, error } = await supabase
       .from('whiteboard_sessions')
-      .insert([{ created_by: user?.id || 'anonymous' }])
-      .select()
+      .insert({ 
+        created_by: user?.id || 'anonymous',
+        data: {}
+      })
+      .select('id')
     
-    if (data) {
+    if (data && data[0]) {
       window.location.href = `/collaborative/${data[0].id}`
     }
   }
