@@ -36,8 +36,12 @@ const Tools = () => {
   };
 
   const updateBackground = (newColor) => {
+    // Updating local state
     dispatch(changeBackgroundColor(newColor));
+    // Emitting the new color to the server
     socket.emit("changeBackground", { color: newColor });
+    // Updating the background color in the server
+    document.querySelector("canvas").style.backgroundColor = newColor;
   };
   // Container for tools
   /* Container for individual items */
@@ -102,7 +106,8 @@ const Tools = () => {
               max={10}
               step={1}
               onChange={updateBrushSize}
-              value={size}
+              value={size[activeMenuObject]}
+              className={styles.sizeSlider}
             />
           </div>
           <br></br>
