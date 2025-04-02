@@ -12,4 +12,11 @@ export const socket = io(URL, {
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
+    timeout: 10000,
 });
+
+socket.on('connect', () => {
+    console.log('Connected to server');
+});
+
+export default socket;
