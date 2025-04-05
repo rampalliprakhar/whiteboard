@@ -20,10 +20,10 @@ export default function CollaborativeSession() {
         const session = {
           id: sessionId,
           created_by: 'anonymous',
+          name: `Session ${sessionId}`,
           data: {},
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          active: true
+          last_accessed: new Date().toISOString()
         }
     
         const { error } = await supabase
