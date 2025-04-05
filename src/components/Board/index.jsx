@@ -4,396 +4,276 @@ import { socket } from "@/socket";
 import { MENU_OBJECTS } from "@/constant";
 import { clickActionObject } from "@/slice/menuSlice";
 
-const Board = () => {
+const Board = ({ sessionId }) => {
   const dispatch = useDispatch();
   const canvasRef = useRef(null);
-  const shouldPaint = useRef(false);
-  const doodleHistory = useRef([]);
-  const displayHistory = useRef(0);
-  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  const isDrawing = useRef(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [isDrawingEnabled, setIsDrawingEnabled] = useState(false);
+  const lastPoint = useRef(null);
+  const drawHistory = useRef([]);
+  const historyStep = useRef(-1);
+
+  // Redux State
   const { activeMenuObject, actionMenuObject } = useSelector(
     (state) => state.menu
   );
   const { color, size, backgroundColor } = useSelector(
     (state) => state.tools[activeMenuObject]
   );
-  const [alertMessage, setAlertMessage] = useState("");
-  const [userId, setUserId] = useState(socket.id);
-  const activeDrawing = new Map();
 
-  const resizeCanvas = useCallback(() => {
-    if (typeof window !== "undefined" && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const context = canvas.getContext("2d");
+  // Coordinate system
+  const getNormalizedCoordinates = (e) => {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
 
-      // Store the current drawing with proper scaling
-      const tempCanvas = document.createElement("canvas");
-      tempCanvas.width = canvas.width;
-      tempCanvas.height = canvas.height;
-      tempCanvas.getContext("2d").drawImage(canvas, 0, 0);
-
-      // Set new dimensions
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-
-      // Restore the drawing with proper scaling
-      context.drawImage(
-        tempCanvas,
-        0,
-        0,
-        tempCanvas.width,
-        tempCanvas.height,
-        0,
-        0,
-        canvas.width,
-        canvas.height
-      );
-
-      // Reset context properties
-      context.strokeStyle = color;
-      context.lineWidth = size;
-      context.lineCap = "round";
-      context.lineJoin = "round";
-    }
-  }, [color, size]);
-
-  useEffect(() => {
-    socket.on("alert", ({ message }) => {
-      setAlertMessage(message);
-    });
-
-    // Cleanup on component unmount
-    return () => {
-      socket.off("alert");
+    return {
+      x: ((e.clientX || e.touches?.[0]?.clientX) - rect.left) * scaleX,
+      y: ((e.clientY || e.touches?.[0]?.clientY) - rect.top) * scaleY,
     };
-  }, []);
+  };
 
-  // Add a debounced resize handler to prevent too frequent updates
-  useEffect(() => {
-    let resizeTimeout;
-    const debouncedResize = () => {
-      clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(resizeCanvas, 100);
-    };
-
-    // Initial setup
-    if (canvasRef.current) {
-      const canvas = canvasRef.current;
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      setCanvasSize({ width: canvas.width, height: canvas.height });
-    }
-
-    window.addEventListener("resize", debouncedResize);
-    return () => {
-      window.removeEventListener("resize", debouncedResize);
-      clearTimeout(resizeTimeout);
-    };
-  }, [resizeCanvas]);
-
-  const redrawCanvas = () => {
+  const saveCanvasState = () => {
     const canvas = canvasRef.current;
     const context = canvas.getContext("2d");
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    if (doodleHistory.current.length > 0 && displayHistory.current >= 0) {
-      const lastDoodle = doodleHistory.current[displayHistory.current];
-      context.putImageData(lastDoodle, 0, 0);
+    historyStep.current++;
+    if (historyStep.current < drawHistory.current.length) {
+      drawHistory.current.length = historyStep.current;
     }
-  };
-
-  // Combined effect for color, size, and background changes
-  useEffect(() => {
-    if (!canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext("2d");
-
-    // Store current drawing
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-
-    // Update context settings
-    context.strokeStyle = color;
-    context.lineWidth = size;
-    context.lineCap = "round";
-    context.lineJoin = "round";
-
-    // Restore drawing
-    context.putImageData(imageData, 0, 0);
-
-    // Update background
-    canvas.style.backgroundColor = backgroundColor;
-
-    // Background handler
-    const backgroundHandler = (config) => {
-      canvas.style.backgroundColor = config.color;
-    };
-
-    socket.on("changeBackground", backgroundHandler);
-    return () => socket.off("changeBackground", backgroundHandler);
-  }, [color, size, backgroundColor]);
-
-  const clearDrawing = (context) => {
-    const canvas = canvasRef.current;
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    doodleHistory.current = []; // Clear the history
-    displayHistory.current = 0; // Reset display history
-  };
-
-  const saveImage = (canvas) => {
-    const imgURL = canvas.toDataURL();
-    const image = document.createElement("a");
-    image.href = imgURL;
-    image.download = "image.jpg";
-    image.click();
-  };
-
-  // Drawing functions remain the same but with simplified scaling
-  const startPosition = (x, y) => {
-    const context = canvasRef.current.getContext("2d");
-    context.beginPath();
-    context.moveTo(x, y);
-  };
-
-  const draw = (x, y, color) => {
-    const context = canvasRef.current.getContext("2d");
-    context.strokeStyle = color;
-    context.lineWidth = size;
-    context.lineCap = "round";
-    context.lineJoin = "round";
-    context.lineTo(x, y);
-    context.stroke();
-    context.beginPath();
-    context.moveTo(x, y);
-  };
-
-  const endPosition = () => {
-    shouldPaint.current = false;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext("2d");
-    const doodleInfo = context.getImageData(0, 0, canvas.width, canvas.height);
-    context.beginPath();
-    socket.emit("stopDrawing", userId); // Notify server when the user stops drawing
-  };
-
-  const actionMenuHandler = (context) => {
-    const canvas = canvasRef.current;
-    switch (actionMenuObject) {
-      case MENU_OBJECTS.SAVE:
-        saveImage(canvas);
-        break;
-      case MENU_OBJECTS.UNDO:
-        if (displayHistory.current > 0) {
-          displayHistory.current -= 1;
-          redrawCanvas(); // Add this
-        }
-        break;
-      case MENU_OBJECTS.REDO:
-        if (displayHistory.current < doodleHistory.current.length - 1) {
-          displayHistory.current += 1;
-          redrawCanvas(); // Add this
-        }
-        break;
-      case MENU_OBJECTS.CLEAR:
-        clearDrawing(context);
-        socket.emit("clear"); // Add this to sync clearing
-        break;
-      default:
-        break;
-    }
-    dispatch(clickActionObject(null));
-  };
-
-  // Update the color change effect to preserve drawing
-  useEffect(() => {
-    if (!canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext("2d");
-
-    // Store current settings
-    const currentImageData = context.getImageData(
-      0,
-      0,
-      canvas.width,
-      canvas.height
+    drawHistory.current.push(
+      context.getImageData(0, 0, canvas.width, canvas.height)
     );
+  };
 
-    // Update context settings
-    context.strokeStyle = color;
-    context.lineWidth = size;
+  // Initializing canvas with correct dimensions
+  const initCanvas = () => {
+    const canvas = canvasRef.current;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+
+    // Standard dimensions
+    canvas.width = 1920;
+    canvas.height = 1080;
+
     context.lineCap = "round";
     context.lineJoin = "round";
+    context.strokeStyle = color;
+    context.lineWidth = size;
 
-    // Restore the drawing
-    context.putImageData(currentImageData, 0, 0);
-
-    // Update background
-    canvas.style.backgroundColor = backgroundColor;
-  }, [color, size, backgroundColor]);
-
-  // Update mouse/touch event handlers to handle scaling
-  // Mouse/touch event handlers with proper scaling
-  const handleMouseDown = (e) => {
-    e.preventDefault();
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = (e.clientX || e.touches[0].clientX) - rect.left;
-    const y = (e.clientY || e.touches[0].clientY) - rect.top;
-
-    shouldPaint.current = true;
-    startPosition(x, y);
-    socket.emit("startPosition", { userId });
+    saveCanvasState();
+    return context;
   };
 
-  const handleMouseMove = (e) => {
-    e.preventDefault();
-    if (!shouldPaint.current) return;
+  // Drawing
+  const drawLine = (start, end, drawColor, drawSize, emit = true) => {
+    const context = canvasRef.current.getContext("2d");
 
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = (e.clientX || e.touches[0].clientX) - rect.left;
-    const y = (e.clientY || e.touches[0].clientY) - rect.top;
-
-    const drawColor =
-      alertMessage === "Two users are drawing at the same time!"
-        ? "#FF0000"
-        : color;
-    draw(x, y, drawColor);
-    socket.emit("draw", { x, y, color: drawColor, size, userId });
-  };
-
-  const handleMouseUp = () => {
-    shouldPaint.current = false;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext("2d");
-    const doodleInfo = context.getImageData(0, 0, canvas.width, canvas.height);
-    doodleHistory.current.push(doodleInfo);
-    displayHistory.current = doodleHistory.current.length - 1;
     context.beginPath();
-    endPosition();
+    context.moveTo(start.x, start.y);
+    context.lineTo(end.x, end.y);
+    context.strokeStyle = drawColor;
+    context.lineWidth = drawSize;
+    context.stroke();
+    context.closePath();
+
+    if (emit) {
+      socket.emit("draw", {
+        start,
+        end,
+        color: drawColor,
+        size: drawSize,
+        sessionId,
+      });
+    }
+  };
+
+  // Event handlers
+  const handlePointerDown = (e) => {
+    if (!isDrawingEnabled) return;
+
+    e.preventDefault();
+    isDrawing.current = true;
+    lastPoint.current = getNormalizedCoordinates(e);
+
+    socket.emit("startDrawing", {
+      point: lastPoint.current,
+      sessionId,
+    });
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDrawing.current || !isDrawingEnabled) return;
+
+    e.preventDefault();
+    const coords = getNormalizedCoordinates(e);
+
+    drawLine(lastPoint.current, coords, color, size);
+    lastPoint.current = coords;
+  };
+
+  const handlePointerUp = () => {
+    if (!isDrawingEnabled) return;
+
+    isDrawing.current = false;
+    lastPoint.current = null;
+    saveCanvasState();
+    socket.emit("stopDrawing", { sessionId });
+  };
+
+  // Action handlers
+  const handleActions = {
+    [MENU_OBJECTS.SAVE]: () => {
+      const dataUrl = canvasRef.current.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.download = `whiteboard-${sessionId}.png`;
+      link.href = dataUrl;
+      link.click();
+    },
+    [MENU_OBJECTS.CLEAR]: () => {
+      const context = canvasRef.current.getContext("2d");
+      context.clearRect(
+        0,
+        0,
+        canvasRef.current.width,
+        canvasRef.current.height
+      );
+      saveCanvasState();
+      socket.emit("clearCanvas", { sessionId });
+    },
+    [MENU_OBJECTS.UNDO]: () => {
+      if (historyStep.current > 0) {
+        historyStep.current--;
+        const imageData = drawHistory.current[historyStep.current];
+        const context = canvasRef.current.getContext("2d");
+        context.putImageData(imageData, 0, 0);
+        socket.emit("canvasState", {
+          imageData: canvasRef.current.toDataURL(),
+          sessionId,
+        });
+      }
+    },
+    [MENU_OBJECTS.REDO]: () => {
+      if (historyStep.current < drawHistory.current.length - 1) {
+        historyStep.current++;
+        const imageData = drawHistory.current[historyStep.current];
+        const context = canvasRef.current.getContext("2d");
+        context.putImageData(imageData, 0, 0);
+        socket.emit("canvasState", {
+          imageData: canvasRef.current.toDataURL(),
+          sessionId,
+        });
+      }
+    },
+    [MENU_OBJECTS.ERASER]: () => {
+      const context = canvasRef.current.getContext("2d");
+      context.globalCompositeOperation = "destination-out";
+    },
   };
 
   // Socket event handlers
   useEffect(() => {
-    socket.on("startPosition", ({ x, y }) => {
-      if (!canvasRef.current) return;
-      startPosition(x, y);
+    const context = initCanvas();
+    socket.emit("joinSession", { sessionId });
+
+    const socketHandlers = {
+      draw: ({ start, end, color, size }) => {
+        drawLine(start, end, color, size, false);
+      },
+      clearCanvas: () => {
+        context.clearRect(
+          0,
+          0,
+          canvasRef.current.width,
+          canvasRef.current.height
+        );
+        saveCanvasState();
+      },
+      alert: ({ message }) => setAlertMessage(message),
+      sessionState: ({ canvasData }) => {
+        if (!canvasData) return;
+        const img = new Image();
+        img.onload = () => {
+          context.drawImage(img, 0, 0);
+          saveCanvasState();
+        };
+        img.src = canvasData;
+      },
+    };
+
+    // Registering all socket events
+    Object.entries(socketHandlers).forEach(([event, handler]) => {
+      socket.on(event, handler);
     });
-
-    socket.on("draw", ({ x, y, color, size, userId }) => {
-      if (!canvasRef.current) return;
-      const context = canvasRef.current.getContext("2d");
-
-      context.strokeStyle = color;
-      context.lineWidth = size;
-
-      // Start new path for the user if not exists
-      if(!activeDrawing.has(userId)) {
-        context.beginPath();
-        context.moveTo(x, y);
-      } else {
-        const lastPosition = activeDrawing.get(userId);
-        context.beginPath();
-        context.moveTo(lastPosition.x, lastPosition.y);
-        context.lineTo(x, y);
-        context.stroke();
-      }
-      // Update last position
-      activeDrawing.set(userId, {x,y});
-    });
-
-    socket.on("stopDrawing", (userId) => {
-      activeDrawing.delete(userId);
-      const context = canvasRef.current.getContext("2d");
-      context.beginPath();
-    });
-
-    return () => {
-      socket.off("startPosition");
-      socket.off("draw");
-      socket.off("stopDrawing");
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext("2d");
-
-    // Resuable method to manipulate color and brush size
-    const changeConfig = (color, size) => {
-      context.strokeStyle = color; // Update stroke color
-      context.lineWidth = size; // Update line width
-    };
-
-    canvas.style.backgroundColor = backgroundColor;
-
-    // Background handler
-    const backgroundHandler = (config) => {
-      console.log("Changed background color: ", config);
-      canvas.style.backgroundColor = config.color;
-    };
-
-    changeConfig(color, size);
-    socket.on("changeBackground", backgroundHandler);
-
-    return () => {
-      socket.off("changeBackground", backgroundHandler);
-    };
-  }, [color, size, backgroundColor]);
-
-  useEffect(() => {
-    if (!canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext("2d");
-
-    // Set canvas dimensions
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    // Draw the last doodle if available
-    if (doodleHistory.current.length > 0 && displayHistory.current >= 0) {
-      const lastDoodle = doodleHistory.current[displayHistory.current];
-      context.putImageData(lastDoodle, 0, 0);
-    }
-
-    // Mouse control
-    canvas.addEventListener("mousedown", handleMouseDown);
-    canvas.addEventListener("mousemove", handleMouseMove);
-    canvas.addEventListener("mouseup", handleMouseUp);
-    // Mobile control
-    canvas.addEventListener("touchstart", handleMouseDown);
-    canvas.addEventListener("touchmove", handleMouseMove);
-    canvas.addEventListener("touchend", handleMouseUp);
-
-    // Handle Action Menu
-    actionMenuHandler(context);
 
     // Cleanup
     return () => {
-      canvas.removeEventListener("mousedown", handleMouseDown);
-      canvas.removeEventListener("mousemove", handleMouseMove);
-      canvas.removeEventListener("mouseup", handleMouseUp);
-      canvas.removeEventListener("touchstart", handleMouseDown);
-      canvas.removeEventListener("touchmove", handleMouseMove);
-      canvas.removeEventListener("touchend", handleMouseUp);
+      Object.keys(socketHandlers).forEach((event) => {
+        socket.off(event);
+      });
+      socket.emit("leaveSession", { sessionId });
     };
-  }, [
-    canvasSize,
-    actionMenuObject,
-    dispatch,
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp,
-  ]);
+  }, [sessionId]);
+
+  useEffect(() => {
+    const context = canvasRef.current.getContext("2d");
+    if (activeMenuObject === MENU_OBJECTS.PENCIL) {
+      setIsDrawingEnabled(true);
+      context.globalCompositeOperation = "source-over";
+    } else if (activeMenuObject === MENU_OBJECTS.ERASER) {
+      setIsDrawingEnabled(true);
+      context.globalCompositeOperation = "destination-out";
+    } else {
+      setIsDrawingEnabled(false);
+    }
+  }, [activeMenuObject]);
+
+  // Handling menu actions
+  useEffect(() => {
+    if (actionMenuObject && handleActions[actionMenuObject]) {
+      handleActions[actionMenuObject]();
+      dispatch(clickActionObject(null));
+    }
+  }, [actionMenuObject, dispatch]);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    const canvas = canvasRef.current;
+    canvas.style.backgroundColor = backgroundColor;
+  }, [backgroundColor]);
 
   return (
-    <div style={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
-      {alertMessage && <div className="alert">{alertMessage}</div>}
+    <div
+      className="board-container"
+      style={{ width: "100vw", height: "100vh", overflow: "hidden" }}
+    >
+      {alertMessage && (
+        <div
+          className="alert"
+          style={{
+            position: "fixed",
+            top: 20,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1000,
+          }}
+        >
+          {alertMessage}
+        </div>
+      )}
       <canvas
         ref={canvasRef}
         style={{
           width: "100%",
           height: "100%",
+          backgroundColor,
           touchAction: "none",
-          border: "2px solid black",
+          cursor: isDrawingEnabled ? "crosshair" : "default",
         }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
       />
     </div>
   );
