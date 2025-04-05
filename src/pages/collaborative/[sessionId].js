@@ -16,13 +16,26 @@ export default function CollaborativeSession() {
 
     // Initialize session tracking
     const initSession = async () => {
-      const session = {
-        id: sessionId,
-        last_active: new Date().toISOString(),
-        active: true
+      try {
+        const session = {
+          id: sessionId,
+          last_active: new Date().toISOString(),
+          active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+    
+        const { error } = await supabase
+          .from('sessions')
+          .upsert(session, {
+            onConflict: 'id',
+            returning: 'minimal'
+          })
+    
+        if (error) throw error
+      } catch (err) {
+        console.error('Failed to initialize session:', err)
       }
-
-      await supabase.from('sessions').upsert(session)
     }
 
     // Setting up real-time subscription
