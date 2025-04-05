@@ -19,14 +19,15 @@ export default function CollaborativeSession() {
       try {
         const session = {
           id: sessionId,
-          last_active: new Date().toISOString(),
-          active: true,
+          created_by: 'anonymous',
+          data: {},
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          active: true
         }
     
         const { error } = await supabase
-          .from('sessions')
+          .from('whiteboard_sessions')
           .upsert(session, {
             onConflict: 'id',
             returning: 'minimal'
