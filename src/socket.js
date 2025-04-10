@@ -1,4 +1,6 @@
 import { io } from 'socket.io-client';
+import { store } from './store';
+import { addUser, removeUser } from './slice/sessionSlice';
 
 const URL = process.env.NODE_ENV === 'production' 
     ? 'https://whiteboardserver-drir.onrender.com'
@@ -20,11 +22,11 @@ socket.on('connect', () => {
 });
 
 socket.on('userJoined', (userId) => {
-    dispatch(addUser(userId));
+    store.dispatch(addUser(userId));
 });
 
 socket.on('userLeft', (userId) => {
-    dispatch(removeUser(userId));
+    store.dispatch(removeUser(userId));
 });
 
 export const joinWhiteboardSession = (sessionId) => {

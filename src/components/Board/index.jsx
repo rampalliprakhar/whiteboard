@@ -1,8 +1,10 @@
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { socket } from "@/socket";
 import { MENU_OBJECTS } from "@/constant";
 import { clickActionObject } from "@/slice/menuSlice";
+import { ShareButton } from "../ShareButton";
+import { UsersList } from "../UsersList";
 
 const Board = ({ sessionId }) => {
   const dispatch = useDispatch();
@@ -21,6 +23,8 @@ const Board = ({ sessionId }) => {
     (state) => state.tools[activeMenuObject]
   );
 
+  const connectedUsers = useSelector(state => state.session.connectedUsers);
+
   // Coordinate system
   const getNormalizedCoordinates = (e) => {
     const canvas = canvasRef.current;
@@ -32,6 +36,32 @@ const Board = ({ sessionId }) => {
       x: ((e.clientX || e.touches?.[0]?.clientX) - rect.left) * scaleX,
       y: ((e.clientY || e.touches?.[0]?.clientY) - rect.top) * scaleY,
     };
+  };
+
+  const handlePaste = (e) => {
+    const items = e.clipboardData?.items;
+    
+    for (let item of items) {
+      if (item.type.indexOf('image') !== -1) {
+        const blob = item.getAsFile();
+        const reader = new FileReader();
+        
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const context = canvasRef.current.getContext('2d');
+            context.drawImage(img, 0, 0);
+            saveCanvasState();
+            socket.emit("canvasState", {
+              imageData: canvasRef.current.toDataURL(),
+              sessionId,
+            });
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(blob);
+      }
+    }
   };
 
   const saveCanvasState = () => {
@@ -245,6 +275,8 @@ const Board = ({ sessionId }) => {
       className="board-container"
       style={{ width: "100vw", height: "100vh", overflow: "hidden" }}
     >
+      <ShareButton/>
+      <UsersList connectedUsers={connectedUsers}/>
       <canvas
         ref={canvasRef}
         style={{
@@ -258,6 +290,7 @@ const Board = ({ sessionId }) => {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
+        onPaste={handlePaste}
       />
     </div>
   );
