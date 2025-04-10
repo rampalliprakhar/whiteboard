@@ -8,7 +8,6 @@ const Board = ({ sessionId }) => {
   const dispatch = useDispatch();
   const canvasRef = useRef(null);
   const isDrawing = useRef(false);
-  const [alertMessage, setAlertMessage] = useState("");
   const [isDrawingEnabled, setIsDrawingEnabled] = useState(false);
   const lastPoint = useRef(null);
   const drawHistory = useRef([]);
@@ -189,7 +188,6 @@ const Board = ({ sessionId }) => {
         );
         saveCanvasState();
       },
-      alert: ({ message }) => setAlertMessage(message),
       sessionState: ({ canvasData }) => {
         if (!canvasData) return;
         const img = new Image();
@@ -247,20 +245,6 @@ const Board = ({ sessionId }) => {
       className="board-container"
       style={{ width: "100vw", height: "100vh", overflow: "hidden" }}
     >
-      {alertMessage && (
-        <div
-          className="alert"
-          style={{
-            position: "fixed",
-            top: 20,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 1000,
-          }}
-        >
-          {alertMessage}
-        </div>
-      )}
       <canvas
         ref={canvasRef}
         style={{

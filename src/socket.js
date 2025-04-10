@@ -19,4 +19,21 @@ socket.on('connect', () => {
     console.log('Connected to server');
 });
 
+socket.on('userJoined', (userId) => {
+    dispatch(addUser(userId));
+});
+
+socket.on('userLeft', (userId) => {
+    dispatch(removeUser(userId));
+});
+
+export const joinWhiteboardSession = (sessionId) => {
+    socket.emit('joinSession', sessionId);
+    return sessionId;
+};
+
+export const generateSessionId = () => {
+    return Math.random().toString(36).substring(2,15);
+};
+
 export default socket;
