@@ -1,10 +1,10 @@
 import { createSlice } from '@reduxjs/toolkit'
-import { connect } from 'socket.io-client';
 
 const initialState = {
     sessionId: null,
     isCollaborative: false,
-    connectedUsers: []
+    connectedUsers: [],
+    initialized: false
 };
 
 export const sessionSlice = createSlice({
@@ -14,10 +14,10 @@ export const sessionSlice = createSlice({
         setSessionId: (state, action) => {
             state.sessionId = action.payload;
             state.isCollaborative = true;
+            state.initialized = true;
         },
         clearSession: (state) => {
-            state.sessionId = null;
-            state.isCollaborative = false;
+            return initialState;
         },
         addUser: (state, action) => {
             if (!state.connectedUsers.includes(action.payload)) {

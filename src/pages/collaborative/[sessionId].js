@@ -5,14 +5,18 @@ import { socket } from '@/socket'
 import Menu from '@/components/Menu'
 import Tools from '@/components/Tools'
 import Board from '@/components/Board'
+import { useSelector } from 'react-redux'
+import { setSessionId } from '@/slice/sessionSlice'
 
 export default function CollaborativeSession() {
   const router = useRouter();
   const { sessionId } = router.query;
-  const [isReady, setIsReady] = useState(false);
+  const initialized = useSelector(state => state.session.initialized);
+//  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     if (!sessionId) return;
+    dispatch(setSessionId(sessionId));
 
     const initSession = async () => {
       try {
@@ -39,9 +43,9 @@ export default function CollaborativeSession() {
     return () => {
       socket.emit('leaveSession', sessionId);
     };
-  }, [sessionId]);
+  }, [sessionId, dispatch]);
 
-  if (!isReady || !sessionId) {
+  if (!initialized || !sessionId) {
     return <div>Loading...</div>;
   }
 
