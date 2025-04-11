@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client';
 import { store } from './store';
 import { addUser, removeUser } from './slice/sessionSlice';
+import { v4 as uuidv4 } from 'uuid';
 
 const URL = process.env.NODE_ENV === 'production' 
     ? 'https://whiteboardserver-drir.onrender.com'
@@ -36,7 +37,7 @@ export const joinWhiteboardSession = (sessionId) => {
 };
 
 export const generateSessionId = () => {
-    return Math.random().toString(36).substring(2,15);
+    return uuidv4();
 };
 
 export default socket;

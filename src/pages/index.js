@@ -14,28 +14,21 @@ export default function Home() {
 
   const createNewSession = async () => {
     try {
-        const sessionData = {
-            created_by: 'anonymous',
-            data: {
-                drawings: [],
-                settings: {
-                    backgroundColor: '#ffffff',
-                    tool: 'pencil'
-                }
-            },
-            created_at: new Date().toISOString()
-        }
-
+        const sessionId = uuidv4();
         const { data, error } = await supabase
             .from('whiteboard_sessions')
-            .insert(sessionData)
+            .insert({
+                id: sessionId,
+                created_by: 'anonymous',
+                data: {},
+                created_at: new Date().toISOString()
+            })
             .select('id')
             .single()
 
         if (error) throw error
         
         if (data) {
-            const sessionId = data.id;
             await joinWhiteboardSession(sessionId);
             const fullLink = `${window.location.origin}/collaborative/${sessionId}`;
             window.location.href = fullLink;
