@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 import { useState, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
+import { joinWhiteboardSession } from '@/socket'
 
 export default function Home() {
   const [user, setUser] = useState(null)
@@ -16,8 +17,9 @@ export default function Home() {
         const { data, error } = await supabase
             .from('whiteboard_sessions')
             .insert({
-                created_by: 'annonymous',
-                data: {}
+                created_by: 'anonymous',
+                data: {},
+                created_at: new Date().toISOString()
             })
             .select('id')
             .single()
@@ -25,12 +27,14 @@ export default function Home() {
         if (error) throw error
         
         if (data) {
-            window.location.href = `/collaborative/${data.id}`
+            const sessionId = data.id;
+            await joinWhiteboardSession(sessionId);
+            window.location.href = `/collaborative/${sessionId}`;
         }
     } catch (error) {
-        console.error('Error creating session:', error)
+        console.error('Error creating session:', error);
     }
-  }
+}
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-mainBackground">

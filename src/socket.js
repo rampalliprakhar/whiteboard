@@ -7,14 +7,15 @@ const URL = process.env.NODE_ENV === 'production'
     : 'http://localhost:5000';
 
 export const socket = io(URL, {
-    transports: ['websocket'],
+    transports: ['websocket', 'polling'],
     cors:{
-        origin: 'https://whiteboardserver-drir.onrender.com'
+        origin: ['https://whiteboardserver-drir.onrender.com', 'https://whiteboard-two-gilt.vercel.app'],
+        credentials: true,
     },
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
-    timeout: 10000,
+    timeout: 20000,
 });
 
 socket.on('connect', () => {
