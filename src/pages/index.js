@@ -14,13 +14,21 @@ export default function Home() {
 
   const createNewSession = async () => {
     try {
+        const sessionData = {
+            created_by: 'anonymous',
+            data: {
+                drawings: [],
+                settings: {
+                    backgroundColor: '#ffffff',
+                    tool: 'pencil'
+                }
+            },
+            created_at: new Date().toISOString()
+        }
+
         const { data, error } = await supabase
             .from('whiteboard_sessions')
-            .insert({
-                created_by: 'anonymous',
-                data: {},
-                created_at: new Date().toISOString()
-            })
+            .insert(sessionData)
             .select('id')
             .single()
 
@@ -35,7 +43,7 @@ export default function Home() {
     } catch (error) {
         console.error('Error creating session:', error);
     }
-}
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-mainBackground">
