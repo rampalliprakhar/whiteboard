@@ -132,12 +132,21 @@ const Board = ({ sessionId }) => {
   };
 
   const handlePointerMove = (e) => {
-    if (!isDrawing.current || !isDrawingEnabled) return;
-
+    if (!isDrawing.current || !isDrawingEnabled || !sessionId) return;
+  
     e.preventDefault();
     const coords = getNormalizedCoordinates(e);
-
+  
     drawLine(lastPoint.current, coords, color, size);
+    socket.emit('draw', {
+      start: lastPoint.current,
+      end: coords,
+      color,
+      size,
+      sessionId,
+      timestamp: Date.now()
+    });
+    
     lastPoint.current = coords;
   };
 

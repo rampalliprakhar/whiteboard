@@ -39,6 +39,8 @@ socket.on('menuAction', (data) => {
 });
 
 socket.on('draw', (data) => {
+    if (!data || !data.sessionId) return;
+    
     const canvas = document.querySelector('canvas');
     if (!canvas) return;
     
@@ -50,7 +52,7 @@ socket.on('draw', (data) => {
     context.lineWidth = data.size;
     context.stroke();
     context.closePath();
-  });
+});
 
 export const joinWhiteboardSession = (sessionId) => {
     socket.emit('joinSession', sessionId);
