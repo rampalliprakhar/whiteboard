@@ -273,7 +273,8 @@ const Board = ({ sessionId }) => {
   return (
     <div
       className="board-container"
-      style={{ width: "100vw", height: "100vh", overflow: "hidden", position: "relative" }}
+      style={{ width: "100vw", height: "100vh", overflow: "hidden", position: "relative", display:"flex", zIndex:1
+       }}
     >
       <ShareButton/>
       <UsersList connectedUsers={connectedUsers}/>
@@ -286,6 +287,9 @@ const Board = ({ sessionId }) => {
           touchAction: "none",
           cursor: isDrawingEnabled ? "crosshair" : "default",
           boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)",
+          position: "absolute",
+          zIndex: 1,
+          pointerEvents: isDrawingEnabled ? "auto" : "none",
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
