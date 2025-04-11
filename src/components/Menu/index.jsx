@@ -14,14 +14,18 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 const Menu = () => {
   const dispatch = useDispatch();
-  const activeMenuObject = useSelector((state) => state.menu.activeMenuObject);
+  const activeMenuObject = useSelector((state) => state.menu.activeMenuObject || MENU_OBJECTS.PENCIL);
 
   const clickMenuHandler = (objectName) => {
-    dispatch(clickMenuObject(objectName));
+    if (objectName) {
+      dispatch(clickMenuObject(objectName));
+    }
   };
 
   const clickActionHandler = (objectName) => {
-    dispatch(clickActionObject(objectName));
+    if (objectName) {
+      dispatch(clickActionObject(objectName));
+    }
   };
 
   return (

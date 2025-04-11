@@ -11,7 +11,7 @@ export const menus = createSlice({
   initialState,
   reducers: {
     clickMenuObject: (state, action) => {
-        state.activeMenuObject = action.payload;
+        state.activeMenuObject = action.payload || initialState.activeMenuObject;
     },
     clickActionObject: (state, action) => {
         state.actionMenuObject = action.payload;
