@@ -7,7 +7,7 @@ export const ShareButton = () => {
     const sessionId = useSelector(state => state.session.sessionId) || generateSessionId();
 
     const handleShare = () => {
-        const shareableLink = `${window.location.origin}/whiteboard?session=${sessionId}`;
+        const shareableLink = `${window.location.origin}/collaborative/${sessionId}`;
         navigator.clipboard.writeText(shareableLink);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
