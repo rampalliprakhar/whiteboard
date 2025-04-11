@@ -38,10 +38,31 @@ socket.on('menuAction', (data) => {
     }
 });
 
+socket.on('draw', (data) => {
+    const canvas = document.querySelector('canvas');
+    if (!canvas) return;
+    
+    const context = canvas.getContext('2d');
+    context.beginPath();
+    context.moveTo(data.start.x, data.start.y);
+    context.lineTo(data.end.x, data.end.y);
+    context.strokeStyle = data.color;
+    context.lineWidth = data.size;
+    context.stroke();
+    context.closePath();
+  });
+
 export const joinWhiteboardSession = (sessionId) => {
     socket.emit('joinSession', sessionId);
     return sessionId;
 };
+
+export const emitDrawing = (data) => {
+    socket.emit('draw', {
+      ...data,
+      timestamp: Date.now()
+    });
+  };
 
 export const generateSessionId = () => {
     return uuidv4();

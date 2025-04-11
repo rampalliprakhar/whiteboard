@@ -23,7 +23,7 @@ const Board = ({ sessionId }) => {
     (state) => state.tools[activeMenuObject]
   );
 
-  const connectedUsers = useSelector(state => state.session.connectedUsers);
+  const connectedUsers = useSelector((state) => state.session.connectedUsers);
 
   // Coordinate system
   const getNormalizedCoordinates = (e) => {
@@ -40,16 +40,16 @@ const Board = ({ sessionId }) => {
 
   const handlePaste = (e) => {
     const items = e.clipboardData?.items;
-    
+
     for (let item of items) {
-      if (item.type.indexOf('image') !== -1) {
+      if (item.type.indexOf("image") !== -1) {
         const blob = item.getAsFile();
         const reader = new FileReader();
-        
+
         reader.onload = (event) => {
           const img = new Image();
           img.onload = () => {
-            const context = canvasRef.current.getContext('2d');
+            const context = canvasRef.current.getContext("2d");
             context.drawImage(img, 0, 0);
             saveCanvasState();
             socket.emit("canvasState", {
@@ -271,13 +271,23 @@ const Board = ({ sessionId }) => {
   }, [backgroundColor]);
 
   return (
-    <div
-      className="board-container"
-      style={{ width: "100vw", height: "100vh", overflow: "hidden", position: "relative", display:"flex", zIndex:1
-       }}
-    >
-      <ShareButton/>
-      <UsersList connectedUsers={connectedUsers}/>
+    // <div
+    //   className="board-container"
+    //   style={{
+    //     width: "calc(100vw - 200px)",
+    //     height: "100vh",
+    //     overflow: "hidden",
+    //     position: "relative",
+    //     marginLeft: "200px",
+    //   }}
+    // >
+    <div className="relative w-screen h-screen">
+      <div className="absolute top-0 left-0 z-10">
+        <ShareButton />
+        <UsersList connectedUsers={connectedUsers} />
+      </div>
+      <ShareButton />
+      <UsersList connectedUsers={connectedUsers} />
       <canvas
         ref={canvasRef}
         style={{
@@ -286,10 +296,10 @@ const Board = ({ sessionId }) => {
           backgroundColor,
           touchAction: "none",
           cursor: isDrawingEnabled ? "crosshair" : "default",
-          boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)",
           position: "absolute",
+          top: 0,
+          left: 0,
           zIndex: 1,
-          pointerEvents: isDrawingEnabled ? "auto" : "none",
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
