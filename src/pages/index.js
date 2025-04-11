@@ -29,7 +29,8 @@ export default function Home() {
         if (data) {
             const sessionId = data.id;
             await joinWhiteboardSession(sessionId);
-            window.location.href = `/collaborative/${sessionId}`;
+            const fullLink = `${window.location.origin}/collaborative/${sessionId}`;
+            window.location.href = fullLink;
         }
     } catch (error) {
         console.error('Error creating session:', error);
