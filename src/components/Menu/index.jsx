@@ -14,9 +14,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 const Menu = () => {
   const dispatch = useDispatch();
-  const activeMenuObject = useSelector((state) => {
-    state.menu.activeMenuObject;
-  });
+  const activeMenuObject = useSelector((state) => state.menu.activeMenuObject);
 
   const clickMenuHandler = (objectName) => {
     dispatch(clickMenuObject(objectName));
