@@ -31,6 +31,13 @@ socket.on('userLeft', (userId) => {
     store.dispatch(removeUser(userId));
 });
 
+socket.on('menuAction', (data) => {
+    store.dispatch(clickMenuObject(data.menuObject));
+    if (data.actionObject) {
+        store.dispatch(clickActionObject(data.actionObject));
+    }
+});
+
 export const joinWhiteboardSession = (sessionId) => {
     socket.emit('joinSession', sessionId);
     return sessionId;

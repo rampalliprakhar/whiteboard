@@ -19,6 +19,14 @@ export const menus = createSlice({
   },
 });
 
+export const emitMenuAction = (menuObject, actionObject = null) => {
+  socket.emit('menuAction', {
+      menuObject,
+      actionObject,
+      sessionId: store.getState().session.sessionId
+  });
+};
+
 export const {clickMenuObject, clickActionObject} = menus.actions;
 
 export default menus.reducer;
