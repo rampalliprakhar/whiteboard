@@ -43,18 +43,19 @@ const Board = ({ sessionId }) => {
     const items = e.clipboardData?.items;
     if (!items) return;
 
-    const imageItem = Array.from(items).find((item) =>
-      item.type.indexOf('image') !== -1);
-    
+    const imageItem = Array.from(items).find(
+      (item) => item.type.indexOf("image") !== -1
+    );
+
     if (!imageItem) return;
 
     const blob = imageItem.getAsFile();
     const reader = new FileReader();
-  
+
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
-        const context = canvasRef.current.getContext('2d');
+        const context = canvasRef.current.getContext("2d");
         // Center the image on the canvas
         const x = (canvasRef.current.width - img.width) / 2;
         const y = (canvasRef.current.height - img.height) / 2;
@@ -62,10 +63,10 @@ const Board = ({ sessionId }) => {
         context.drawImage(img, x, y);
         saveCanvasState();
 
-        socket.emit('canvasState', {
+        socket.emit("canvasState", {
           imageData: canvasRef.current.toDataURL(),
           sessionId,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       };
       img.src = event.target.result;
@@ -149,20 +150,20 @@ const Board = ({ sessionId }) => {
 
   const handlePointerMove = (e) => {
     if (!isDrawing.current || !isDrawingEnabled || !sessionId) return;
-  
+
     e.preventDefault();
     const coords = getNormalizedCoordinates(e);
-  
+
     drawLine(lastPoint.current, coords, color, size);
-    socket.emit('draw', {
+    socket.emit("draw", {
       start: lastPoint.current,
       end: coords,
       color,
       size,
       sessionId,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
-    
+
     lastPoint.current = coords;
   };
 
@@ -225,6 +226,18 @@ const Board = ({ sessionId }) => {
     },
   };
 
+  // Background color
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    const canvas = canvasRef.current;
+    canvas.style.backgroundColor = backgroundColor;
+
+    socket.emit("changeBackground", {
+      sessionId,
+      color: backgroundColor,
+    });
+  }, [backgroundColor, sessionId]);
+
   // Socket event handlers
   useEffect(() => {
     const context = initCanvas();
@@ -260,12 +273,18 @@ const Board = ({ sessionId }) => {
       imagePaste: ({ imageData, position, dimensions }) => {
         const img = new Image();
         img.onload = () => {
-          const context = canvasRef.current.getContext('2d');
-          context.drawImage(img, position.x, position.y, dimensions.width, dimensions.height);
+          const context = canvasRef.current.getContext("2d");
+          context.drawImage(
+            img,
+            position.x,
+            position.y,
+            dimensions.width,
+            dimensions.height
+          );
           saveCanvasState();
         };
         img.src = imageData;
-      }
+      },
     };
 
     // Registering all socket events
@@ -302,12 +321,6 @@ const Board = ({ sessionId }) => {
       dispatch(clickActionObject(null));
     }
   }, [actionMenuObject, dispatch]);
-
-  useEffect(() => {
-    if (!canvasRef.current) return;
-    const canvas = canvasRef.current;
-    canvas.style.backgroundColor = backgroundColor;
-  }, [backgroundColor]);
 
   return (
     // <div
