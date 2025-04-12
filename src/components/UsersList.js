@@ -17,8 +17,11 @@ export const UsersList = ({ connectedUsers }) => {
                 zIndex: 1000,
             }}
         >
-            {connectedUsers.map(userId => (
-                <UserProfile key={userId} userId={userId} />
+            {Array.from(new Set(connectedUsers)).map((userId, index) => (
+                <UserProfile 
+                key={`user-${userId}-${index}`} 
+                userId={userId} 
+                />
             ))}
         </div>
     );

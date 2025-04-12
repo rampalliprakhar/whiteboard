@@ -1,24 +1,22 @@
 .toolsContainer{
-    @apply p-4 rounded-md;
+    @apply p-4 rounded-md fixed;
     background-color: theme('colors.mainBackground');
     border: 1px solid theme('colors.mainBorder');
     box-shadow: theme('colors.mainShadow');
     left: 10px;
-    position: fixed;
     top: 80px;
     width: 250px;
-    
-
-    @media(max-width: 768px){
-        bottom: 10px;
-        left: 50%;
-        max-width: 400px;
-        padding: 12px;
-        position: fixed;
-        top: auto;
-        transform: translateX(-50%);
-        width: 95%;
+    z-index: 10;
+  
+    @media (max-width: 768px) {
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      top: auto;
+      width: 90%;
+      max-width: 400px;
     }
+
 
 
     .toolItems{

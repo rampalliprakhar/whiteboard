@@ -14,18 +14,18 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 const Menu = () => {
   const dispatch = useDispatch();
-  const activeMenuObject = useSelector((state) => state.menu.activeMenuObject || MENU_OBJECTS.PENCIL);
+  const activeMenuObject = useSelector((state) => state.menu.activeMenuObject);
 
-  const clickMenuHandler = (objectName) => {
-    if (objectName) {
-      dispatch(clickMenuObject(objectName));
-    }
+  const clickMenuHandler = (e, objectName) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dispatch(clickMenuObject(objectName));
   };
 
-  const clickActionHandler = (objectName) => {
-    if (objectName) {
-      dispatch(clickActionObject(objectName));
-    }
+  const clickActionHandler = (e, objectName) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dispatch(clickActionObject(objectName));
   };
 
   return (
@@ -34,8 +34,8 @@ const Menu = () => {
         className={cx(styles.iconWrapper, {
           [styles.active]: activeMenuObject === MENU_OBJECTS.PENCIL,
         })}
-        onClick={() => {
-          clickMenuHandler(MENU_OBJECTS.PENCIL);
+        onClick={(e) => {
+          clickMenuHandler(e, MENU_OBJECTS.PENCIL);
         }}
       >
         <FontAwesomeIcon icon={faPencil} className={styles.icon} />
@@ -44,40 +44,40 @@ const Menu = () => {
         className={cx(styles.iconWrapper, {
           [styles.active]: activeMenuObject === MENU_OBJECTS.ERASER,
         })}
-        onClick={() => {
-          clickMenuHandler(MENU_OBJECTS.ERASER);
+        onClick={(e) => {
+          clickMenuHandler(e, MENU_OBJECTS.ERASER);
         }}
       >
         <FontAwesomeIcon icon={faEraser} className={styles.icon} />
       </div>
       <div
         className={cx(styles.iconWrapper)}
-        onClick={() => {
-          clickActionHandler(MENU_OBJECTS.UNDO);
+        onClick={(e) => {
+          clickActionHandler(e, MENU_OBJECTS.UNDO);
         }}
       >
         <FontAwesomeIcon icon={faRotateLeft} className={styles.icon} />
       </div>
       <div
         className={cx(styles.iconWrapper)}
-        onClick={() => {
-          clickActionHandler(MENU_OBJECTS.REDO);
+        onClick={(e) => {
+          clickActionHandler(e, MENU_OBJECTS.REDO);
         }}
       >
         <FontAwesomeIcon icon={faRotateRight} className={styles.icon} />
       </div>
       <div
         className={cx(styles.iconWrapper)}
-        onClick={() => {
-          clickActionHandler(MENU_OBJECTS.CLEAR);
+        onClick={(e) => {
+          clickActionHandler(e, MENU_OBJECTS.CLEAR);
         }}
       >
         <FontAwesomeIcon icon={faTrash} className={styles.icon} />
       </div>
       <div
         className={cx(styles.iconWrapper)}
-        onClick={() => {
-          clickActionHandler(MENU_OBJECTS.SAVE);
+        onClick={(e) => {
+          clickActionHandler(e, MENU_OBJECTS.SAVE);
         }}
       >
         <FontAwesomeIcon icon={faFileArrowDown} className={styles.icon} />

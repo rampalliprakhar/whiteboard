@@ -5,6 +5,7 @@ import { MENU_OBJECTS } from "@/constant";
 import { clickActionObject } from "@/slice/menuSlice";
 import { ShareButton } from "../ShareButton";
 import { UsersList } from "../UsersList";
+import Tools from "../Tools";
 
 const Board = ({ sessionId }) => {
   const dispatch = useDispatch();
@@ -40,29 +41,44 @@ const Board = ({ sessionId }) => {
 
   const handlePaste = (e) => {
     const items = e.clipboardData?.items;
+    if (!items) return;
 
-    for (let item of items) {
-      if (item.type.indexOf("image") !== -1) {
-        const blob = item.getAsFile();
-        const reader = new FileReader();
+    const imageItem = Array.from(items).find((item) =>
+      item.type.indexOf('image') !== -1);
+    
+    if (!imageItem) return;
 
-        reader.onload = (event) => {
-          const img = new Image();
-          img.onload = () => {
-            const context = canvasRef.current.getContext("2d");
-            context.drawImage(img, 0, 0);
-            saveCanvasState();
-            socket.emit("canvasState", {
-              imageData: canvasRef.current.toDataURL(),
-              sessionId,
-            });
-          };
-          img.src = event.target.result;
-        };
-        reader.readAsDataURL(blob);
-      }
-    }
+    const blob = imageItem.getAsFile();
+    const reader = new FileReader();
+  
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const context = canvasRef.current.getContext('2d');
+        // Center the image on the canvas
+        const x = (canvasRef.current.width - img.width) / 2;
+        const y = (canvasRef.current.height - img.height) / 2;
+
+        context.drawImage(img, x, y);
+        saveCanvasState();
+
+        socket.emit('canvasState', {
+          imageData: canvasRef.current.toDataURL(),
+          sessionId,
+          timestamp: Date.now()
+        });
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(blob);
   };
+
+  useEffect(() => {
+    window.addEventListener("paste", handlePaste);
+    return () => {
+      window.removeEventListener("paste", handlePaste);
+    };
+  });
 
   const saveCanvasState = () => {
     const canvas = canvasRef.current;
@@ -236,6 +252,20 @@ const Board = ({ sessionId }) => {
         };
         img.src = canvasData;
       },
+      changeBackground: ({ color }) => {
+        if (canvasRef.current) {
+          canvasRef.current.style.backgroundColor = color;
+        }
+      },
+      imagePaste: ({ imageData, position, dimensions }) => {
+        const img = new Image();
+        img.onload = () => {
+          const context = canvasRef.current.getContext('2d');
+          context.drawImage(img, position.x, position.y, dimensions.width, dimensions.height);
+          saveCanvasState();
+        };
+        img.src = imageData;
+      }
     };
 
     // Registering all socket events
@@ -291,12 +321,11 @@ const Board = ({ sessionId }) => {
     //   }}
     // >
     <div className="relative w-screen h-screen">
-      <div className="absolute top-0 left-0 z-10">
+      <div className="fixed top-4 right-4 flex flex-col gap-4 z-10">
         <ShareButton />
         <UsersList connectedUsers={connectedUsers} />
       </div>
-      <ShareButton />
-      <UsersList connectedUsers={connectedUsers} />
+      <Tools canvasRef={canvasRef} />
       <canvas
         ref={canvasRef}
         style={{

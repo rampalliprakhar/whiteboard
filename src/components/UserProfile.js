@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 export const UserProfile = ({ userId }) => {
+    const displayId = String(userId).slice(0, 6);
     const [color] = useState(() => 
         `#${Math.floor(Math.random()*16777215).toString(16)}`
     );
@@ -28,7 +29,7 @@ export const UserProfile = ({ userId }) => {
                 }
             }}
         >
-            {userId.slice(0, 2).toUpperCase()}
+            <span>{displayId}</span>
         </div>
     );
 };

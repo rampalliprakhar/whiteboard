@@ -9,8 +9,7 @@ import {
   changeActiveMenuObject,
   changeBackgroundColor,
 } from "@/slice/toolsSlice";
-import { useEffect } from "react";
-const Tools = () => {
+const Tools = ({canvasRef}) => {
   const dispatch = useDispatch();
   const { activeMenuObject, color, size, backgroundColor } = useSelector(
     (state) => state.tools
@@ -41,7 +40,10 @@ const Tools = () => {
     // Emitting the new color to the server
     socket.emit("changeBackground", { color: newColor });
     // Updating the background color in the server
-    document.querySelector("canvas").style.backgroundColor = newColor;
+    if (canvasRef.current) {
+//      document.querySelector("canvas").style.backgroundColor = newColor;
+      canvasRef.current.style.backgroundColor = newColor;
+    }
   };
   // Container for tools
   /* Container for individual items */
@@ -103,7 +105,7 @@ const Tools = () => {
             <input
               type="range"
               min={1}
-              max={10}
+              max={20}
               step={1}
               onChange={updateBrushSize}
               value={size[activeMenuObject]}
