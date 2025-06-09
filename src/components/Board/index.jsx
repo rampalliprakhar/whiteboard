@@ -40,7 +40,8 @@ const Board = ({ sessionId }) => {
   };
 
   const handlePaste = (e) => {
-    const items = e.clipboardData?.items;
+    try {
+          const items = e.clipboardData?.items;
     if (!items) return;
 
     const imageItem = Array.from(items).find(
@@ -72,6 +73,9 @@ const Board = ({ sessionId }) => {
       img.src = event.target.result;
     };
     reader.readAsDataURL(blob);
+    } catch (error) {
+      console.error('Error handling paste:', error);
+    }
   };
 
   useEffect(() => {
